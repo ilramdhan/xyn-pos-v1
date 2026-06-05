@@ -1,0 +1,71 @@
+name: Proto CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'proto/**'
+      - 'buf.yaml'
+      - 'buf.gen.yaml'
+
+jobs:
+  lint:
+    name: Buf Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: "1.70.0"
+
+      - name: Lint protos
+        run: buf lint proto/
+
+      - name: Check formatting
+        run: buf format --diff proto/
+
+  breaking:
+    name: Breaking Change Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: "1.70.0"
+
+      - name: Check for breaking changes
+        run: buf breaking proto/ --against '.git#branch=main,subdir=proto'
+
+  generate:
+    name: Verify Generated Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.4"
+          cache: true
+
+      - name: Set up Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          version: "1.70.0"
+
+      - name: Generate code
+        run: buf generate proto/
+
+      - name: Verify no diff in generated code
+        run: |
+          if ! git diff --exit-code gen/; then
+            echo "Generated code is out of sync. Run 'make proto-gen' and commit the result."
+            exit 1
+          fi
