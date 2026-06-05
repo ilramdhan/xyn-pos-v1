@@ -1,0 +1,26 @@
+# Buf 1.70.0 — Protobuf workspace configuration
+# Docs: https://buf.build/docs/configuration/v2/buf-yaml
+version: v2
+
+modules:
+  - path: proto
+    name: buf.build/xyn-pos/api
+
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX   # We use pos/v1, not posv1
+  ignore_only:
+    RPC_REQUEST_RESPONSE_UNIQUE:
+      - google/api/annotations.proto
+
+breaking:
+  use:
+    - FILE
+  ignore_unstable_packages: true
+
+deps:
+  - buf.build/googleapis/googleapis          # google.api.http for gRPC-Gateway
+  - buf.build/grpc-ecosystem/grpc-gateway   # grpc-gateway annotations
+  - buf.build/protocolbuffers/wellknowntypes # google.protobuf.Timestamp etc.

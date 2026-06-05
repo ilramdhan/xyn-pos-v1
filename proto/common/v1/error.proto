@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package common.v1;
+
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/xyn-pos/gen/common/v1;commonv1";
+
+// FieldViolation — validation error on a specific field
+message FieldViolation {
+  string field   = 1;
+  string message = 2;
+}
+
+// ErrorDetail — machine-readable error supplementing gRPC status
+// Embedded in google.rpc.Status.details
+message ErrorDetail {
+  // Application-level error code (e.g. "ORDER_NOT_FOUND")
+  string error_code = 1;
+
+  // Human-readable public message (safe to show users)
+  string message = 2;
+
+  // Docs URL for this error code
+  string doc_url = 3;
+
+  // Field-level validation errors (populated for INVALID_ARGUMENT)
+  repeated FieldViolation field_violations = 4;
+
+  // Request ID for cross-system tracing
+  string request_id = 5;
+}

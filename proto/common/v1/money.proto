@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package common.v1;
+
+option go_package = "github.com/xyn-pos/gen/common/v1;commonv1";
+
+// Money represents a monetary amount as integer minor units.
+// NEVER use float/double for money — use int64 minor units.
+// Example: Rp 15.000 = 1500000 (minor unit = 0.01 IDR)
+message Money {
+  // Amount in the smallest currency unit (e.g., cents, sen)
+  int64 amount_minor = 1;
+
+  // ISO 4217 currency code (e.g., "IDR", "USD")
+  string currency_code = 2;
+}
