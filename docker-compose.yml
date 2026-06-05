@@ -1,0 +1,283 @@
+version: "3.9"
+
+# xyn-pos-v1 — Local Development Stack
+# Go 1.26.4 | PostgreSQL 18.4 | Redis 8.8 | Kafka 4.3 KRaft | MinIO | Keycloak
+#
+# Usage:
+#   make dev-up     → docker compose up -d
+#   make dev-down   → docker compose down -v
+#   make dev-logs   → docker compose logs -f
+
+networks:
+  xyn-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  minio-data:
+  keycloak-data:
+
+services:
+
+  # ─────────────────────────────────────────────────────────
+  # PostgreSQL 18.4 — Primary database with RLS
+  # ─────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:18.4-alpine
+    container_name: xyn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xyn_admin
+      POSTGRES_PASSWORD: xyn_dev_password
+      POSTGRES_DB: xyn_pos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xyn_admin -d xyn_pos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # PgBouncer — Connection pooler for PostgreSQL
+  # ─────────────────────────────────────────────────────────
+  pgbouncer:
+    image: bitnami/pgbouncer:1.24.1
+    container_name: xyn-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: xyn_admin
+      POSTGRESQL_PASSWORD: xyn_dev_password
+      POSTGRESQL_DATABASE: xyn_pos
+      PGBOUNCER_PORT: 6432
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 200
+      PGBOUNCER_DEFAULT_POOL_SIZE: 20
+    ports:
+      - "6432:6432"
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Redis 8.8 — Cache + rate limiting
+  # ─────────────────────────────────────────────────────────
+  redis:
+    image: redis:8.8-alpine
+    container_name: xyn-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass xyn_redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "xyn_redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Apache Kafka 4.3 — KRaft mode (NO ZooKeeper)
+  # Breaking change from Kafka 3.x: ZooKeeper is fully removed
+  # ─────────────────────────────────────────────────────────
+  kafka:
+    image: apache/kafka:4.3.0
+    container_name: xyn-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - xyn-net
+
+  # Kafka UI — management console
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: xyn-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8090:8080"
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # MinIO — S3-compatible object storage (receipts, images)
+  # ─────────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    container_name: xyn-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: xyn_minio_admin
+      MINIO_ROOT_PASSWORD: xyn_minio_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Keycloak 26.2 — Identity & access management
+  # ─────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    container_name: xyn-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: xyn_keycloak_password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: xyn_admin
+      KC_DB_PASSWORD: xyn_dev_password
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./scripts/keycloak:/opt/keycloak/data/import:ro
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # KrakenD 2.9 — API Gateway
+  # ─────────────────────────────────────────────────────────
+  krakend:
+    image: devopsfaith/krakend:2.9.2
+    container_name: xyn-krakend
+    restart: unless-stopped
+    volumes:
+      - ./infra/krakend:/etc/krakend:ro
+    ports:
+      - "8000:8080"
+    command: ["run", "-d", "-c", "/etc/krakend/krakend.json"]
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Observability Stack
+  # ─────────────────────────────────────────────────────────
+
+  # Jaeger — Distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:2.6.0
+    container_name: xyn-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    networks:
+      - xyn-net
+
+  # Prometheus 3.12 — Metrics
+  prometheus:
+    image: prom/prometheus:v3.12.0
+    container_name: xyn-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - xyn-net
+
+  # Grafana 13 — Dashboards
+  grafana:
+    image: grafana/grafana:13.0.2
+    container_name: xyn-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: xyn_grafana_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - xyn-net
+
+  # Loki — Log aggregation
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: xyn-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    networks:
+      - xyn-net
+
+  # Promtail — Log shipper (collects Docker container logs)
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: xyn-promtail
+    restart: unless-stopped
+    depends_on:
+      - loki
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./infra/promtail/config.yml:/etc/promtail/config.yml:ro
+    networks:
+      - xyn-net
