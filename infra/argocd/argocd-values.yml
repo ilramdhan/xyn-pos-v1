@@ -1,0 +1,73 @@
+# ArgoCD 3.4.3 Helm values for xyn-pos-v1
+# GitOps: ArgoCD watches this repo and auto-deploys when manifests change
+
+global:
+  domain: argocd.xyn-local.dev   # Change to your actual domain
+
+configs:
+  params:
+    server.insecure: false
+    server.enable.gzip: true
+
+  # RBAC: only platform team can sync prod
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:platform-team, applications, sync,    */*, allow
+      p, role:platform-team, applications, delete,  */*, allow
+      p, role:platform-team, repositories, create,  */*, allow
+      g, platform-team,      role:platform-team
+
+  # Repo connection (update with your actual repo URL)
+  repositories:
+    xyn-pos-repo:
+      url: https://github.com/your-org/xyn-pos-v1
+      name: xyn-pos-v1
+      type: git
+
+server:
+  replicas: 1
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    tls: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+applicationSet:
+  replicas: 1
+
+notifications:
+  enabled: true
+  # Slack webhook for deploy notifications
+  # Set via: kubectl create secret generic argocd-notifications-secret \
+  #   --from-literal=slack-token=xoxb-your-token
+  secret:
+    create: false
+
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

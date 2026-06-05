@@ -1,0 +1,35 @@
+---
+# ArgoCD Application: Infrastructure services (Postgres, Redis, Kafka, MinIO, Keycloak)
+# Deployed to the xyn-infra namespace
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: xyn-infra
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"   # Deploy infra first
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/xyn-pos-v1
+    targetRevision: HEAD
+    path: infra/k8s/overlays/dev/infra   # or staging / prod
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: xyn-infra
+
+  syncPolicy:
+    automated:
+      prune: false          # Do NOT auto-delete infra resources
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m

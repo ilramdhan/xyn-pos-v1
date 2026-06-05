@@ -1,0 +1,33 @@
+---
+# App-of-Apps pattern: one ArgoCD Application that manages all other Applications.
+# Apply this once: kubectl apply -f infra/argocd/apps/app-of-apps.yml -n argocd
+# ArgoCD will then self-manage everything else from git.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: xyn-pos-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/xyn-pos-v1  # ← Update this
+    targetRevision: HEAD
+    path: infra/argocd/apps
+    directory:
+      recurse: false
+      exclude: app-of-apps.yml   # Don't self-reference
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

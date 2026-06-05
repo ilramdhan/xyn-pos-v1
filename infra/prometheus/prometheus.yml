@@ -1,0 +1,65 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: local
+    project: xyn-pos
+
+# Alerting (point to Alertmanager when deployed)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Recording rules and alert rules
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  # ─────────────────────────────────────────────────────────
+  # Go microservices — each exposes /metrics on HTTP port
+  # ─────────────────────────────────────────────────────────
+  - job_name: xyn-tenant
+    static_configs:
+      - targets: ["host.docker.internal:8051"]
+    metrics_path: /metrics
+
+  - job_name: xyn-pos
+    static_configs:
+      - targets: ["host.docker.internal:8052"]
+    metrics_path: /metrics
+
+  - job_name: xyn-payment
+    static_configs:
+      - targets: ["host.docker.internal:8053"]
+    metrics_path: /metrics
+
+  - job_name: xyn-inventory
+    static_configs:
+      - targets: ["host.docker.internal:8054"]
+    metrics_path: /metrics
+
+  - job_name: xyn-kitchen
+    static_configs:
+      - targets: ["host.docker.internal:8055"]
+    metrics_path: /metrics
+
+  - job_name: xyn-analytics
+    static_configs:
+      - targets: ["host.docker.internal:8056"]
+    metrics_path: /metrics
+
+  # ─────────────────────────────────────────────────────────
+  # Infrastructure components
+  # ─────────────────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: kafka
+    static_configs:
+      - targets: ["kafka:9092"]
+
+  - job_name: postgres
+    static_configs:
+      - targets: ["pgbouncer:6432"]

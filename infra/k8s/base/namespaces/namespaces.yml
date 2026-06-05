@@ -1,0 +1,53 @@
+---
+# xyn-pos-v1 namespace structure
+# Purpose: isolate dev / staging / prod and infrastructure components
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xyn-dev
+  labels:
+    environment: dev
+    project: xyn-pos
+    managed-by: argocd
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xyn-staging
+  labels:
+    environment: staging
+    project: xyn-pos
+    managed-by: argocd
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xyn-prod
+  labels:
+    environment: prod
+    project: xyn-pos
+    managed-by: argocd
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xyn-infra
+  labels:
+    environment: shared
+    project: xyn-pos
+  annotations:
+    description: "Shared infrastructure: PostgreSQL, Redis, Kafka, MinIO, Keycloak"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    project: xyn-pos
+  annotations:
+    description: "Prometheus, Grafana, Loki, Jaeger"

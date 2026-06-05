@@ -1,0 +1,95 @@
+---
+# ArgoCD ApplicationSet: deploys all 6 microservices in one definition.
+# ApplicationSet generates one Application per service automatically.
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: xyn-services
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - service: tenant
+            port: "50051"
+            httpPort: "8051"
+            wave: "0"
+          - service: pos
+            port: "50052"
+            httpPort: "8052"
+            wave: "1"
+          - service: payment
+            port: "50053"
+            httpPort: "8053"
+            wave: "2"
+          - service: inventory
+            port: "50054"
+            httpPort: "8054"
+            wave: "1"
+          - service: kitchen
+            port: "50055"
+            httpPort: "8055"
+            wave: "1"
+          - service: analytics
+            port: "50056"
+            httpPort: "8056"
+            wave: "3"
+
+  template:
+    metadata:
+      name: "xyn-{{service}}"
+      namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "{{wave}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/your-org/xyn-pos-v1
+        targetRevision: HEAD
+        path: "infra/k8s/overlays/dev/{{service}}"
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: xyn-dev
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+---
+# Web frontend Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: xyn-web
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/xyn-pos-v1
+    targetRevision: HEAD
+    path: infra/k8s/overlays/dev/web
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: xyn-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

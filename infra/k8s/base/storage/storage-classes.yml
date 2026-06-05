@@ -1,0 +1,81 @@
+---
+# Storage classes for xyn-pos-v1 on K3s
+# K3s ships with local-path provisioner by default.
+# We define named classes so workloads are portable.
+
+# Default: fast local SSD storage for databases
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: xyn-fast
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain        # Retain on PVC delete — safety for DB volumes
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# Bulk: cheaper, slower storage for logs and analytics
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: xyn-bulk
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# PersistentVolumeClaims for infrastructure services in xyn-infra namespace
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: xyn-infra
+spec:
+  storageClassName: xyn-fast
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: xyn-infra
+spec:
+  storageClassName: xyn-fast
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-pvc
+  namespace: xyn-infra
+spec:
+  storageClassName: xyn-fast
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: xyn-infra
+spec:
+  storageClassName: xyn-bulk
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 50Gi
