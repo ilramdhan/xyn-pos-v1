@@ -1,0 +1,16 @@
+go 1.26
+
+// xyn-pos-v1 Go workspace
+// All Go modules in this monorepo are listed here.
+// Run: go work sync
+// Docs: https://go.dev/ref/mod#go-work-file
+
+use (
+    ./shared/go
+    ./services/tenant
+    ./services/pos
+    ./services/payment
+    ./services/inventory
+    ./services/kitchen
+    ./services/analytics
+)

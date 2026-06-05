@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────────────────
+# Claude Code local tooling — never commit these
+# ─────────────────────────────────────────────────────────
+.agents/
+.claude/
+.mcp.json
+skills-lock.json
+
+# ─────────────────────────────────────────────────────────
+# Secrets & environment
+# ─────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+secrets/
+
+# ─────────────────────────────────────────────────────────
+# Go
+# ─────────────────────────────────────────────────────────
+bin/
+*.exe
+*.test
+*.out
+coverage.out
+coverage.html
+go.work.sum
+
+# ─────────────────────────────────────────────────────────
+# Generated code — regenerate with `make proto-gen`
+# ─────────────────────────────────────────────────────────
+gen/
+
+# ─────────────────────────────────────────────────────────
+# Node / Next.js
+# ─────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+# Root package.json is Claude Code tooling only — real app package.json lives in apps/web/
+.next/
+out/
+.turbo/
+dist/
+*.tsbuildinfo
+
+# ─────────────────────────────────────────────────────────
+# Flutter / Dart
+# ─────────────────────────────────────────────────────────
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/build/
+apps/mobile/*.g.dart
+apps/mobile/*.freezed.dart
+apps/mobile/pubspec.lock
+
+# ─────────────────────────────────────────────────────────
+# Docker volumes & data
+# ─────────────────────────────────────────────────────────
+postgres-data/
+redis-data/
+kafka-data/
+minio-data/
+
+# ─────────────────────────────────────────────────────────
+# OS / IDE
+# ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+.vscode/
+*.swp
+*.swo
+
+# ─────────────────────────────────────────────────────────
+# k6 results
+# ─────────────────────────────────────────────────────────
+tests/k6/results/
+*.k6.json
+
+# ─────────────────────────────────────────────────────────
+# Buf local cache
+# ─────────────────────────────────────────────────────────
+.buf/
