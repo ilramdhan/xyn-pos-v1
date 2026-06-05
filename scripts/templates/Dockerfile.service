@@ -1,0 +1,72 @@
+# Multi-stage Dockerfile for xyn-pos-v1 Go microservices
+# Base: Go 1.26.4 | Runtime: distroless (no shell, minimal attack surface)
+# Usage: docker build --build-arg SERVICE=pos -f scripts/templates/Dockerfile.service .
+
+ARG SERVICE=pos
+
+# ─────────────────────────────────────────────────────────
+# Stage 1: dependency cache
+# Only rebuilt when go.mod/go.sum change
+# ─────────────────────────────────────────────────────────
+FROM golang:1.26.4-alpine AS deps
+WORKDIR /workspace
+
+# Copy workspace files
+COPY go.work go.work.sum* ./
+COPY shared/go/go.mod shared/go/go.sum* ./shared/go/
+
+ARG SERVICE
+COPY services/${SERVICE}/go.mod services/${SERVICE}/go.sum* ./services/${SERVICE}/
+
+RUN go work sync && \
+    cd services/${SERVICE} && go mod download
+
+# ─────────────────────────────────────────────────────────
+# Stage 2: build
+# ─────────────────────────────────────────────────────────
+FROM deps AS builder
+WORKDIR /workspace
+
+ARG SERVICE
+
+# Copy shared packages
+COPY shared/go/ ./shared/go/
+
+# Copy generated proto code
+COPY gen/ ./gen/
+
+# Copy service source
+COPY services/${SERVICE}/ ./services/${SERVICE}/
+
+# Build a statically linked binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build \
+    -ldflags="-s -w -extldflags '-static'" \
+    -o /app/server \
+    ./services/${SERVICE}/cmd/server/
+
+# ─────────────────────────────────────────────────────────
+# Stage 3: runtime (distroless — no shell, no package manager)
+# ─────────────────────────────────────────────────────────
+FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/server .
+
+# Copy CA certificates for TLS (already in distroless/static)
+# No additional files needed
+
+ARG SERVICE
+ENV SERVICE_NAME=${SERVICE}
+
+# Health check via gRPC health protocol (grpc-health-probe)
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["/app/server", "healthcheck"]
+
+EXPOSE 50051 8080 9090
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/app/server"]
