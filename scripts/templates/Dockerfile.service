@@ -32,8 +32,8 @@ ARG SERVICE
 # Copy shared packages
 COPY shared/go/ ./shared/go/
 
-# Copy generated proto code
-COPY gen/ ./gen/
+# Copy generated proto code (Phase 3+: uncomment when gen/ is committed to the repo)
+# COPY gen/ ./gen/
 
 # Copy service source
 COPY services/${SERVICE}/ ./services/${SERVICE}/

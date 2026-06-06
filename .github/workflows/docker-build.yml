@@ -85,7 +85,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: services/${{ matrix.service }}/Dockerfile
+          # All services share the same Dockerfile template — SERVICE arg selects the target
+          file: scripts/templates/Dockerfile.service
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

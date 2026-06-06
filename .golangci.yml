@@ -98,6 +98,7 @@ issues:
   max-same-issues: 5
 
 output:
+  # golangci-lint v2: formats is a map, not a list
   formats:
-    - format: colored-line-number
+    colored-line-number: {}
   sort-results: true
