@@ -214,7 +214,9 @@ services:
   # Observability Stack
   # ─────────────────────────────────────────────────────────
 
-  # Jaeger — Distributed tracing
+  # Jaeger — Distributed tracing UI + storage
+  # WHY no 4317/4318 host ports: OTEL Collector is the OTLP entry point.
+  # Go services (local) → localhost:4317 → otel-collector → jaeger:4317 (internal only)
   jaeger:
     image: jaegertracing/all-in-one:2.6.0
     container_name: xyn-jaeger
@@ -222,9 +224,31 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # Jaeger UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+      - "16686:16686"   # Jaeger UI — http://localhost:16686
+    networks:
+      - xyn-net
+
+  # OTEL Collector — centralized telemetry aggregator
+  # All Go services → localhost:4317 → Collector → Jaeger (traces) + Prometheus (metrics) + Loki (logs)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.127.0
+    container_name: xyn-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel/collector-config.yaml"]
+    volumes:
+      - ./infra/otel/collector-config.yaml:/etc/otel/collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC — send traces here from Go services
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics scrape endpoint
+      - "13133:13133" # Health check
+    depends_on:
+      - jaeger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - xyn-net
 

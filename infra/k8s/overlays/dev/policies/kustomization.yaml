@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# WHY no namespace override: these resources explicitly set their own namespaces
+# (xyn-services, xyn-infra, xyn-dev) — a global namespace here would override them incorrectly.
+resources:
+  - ../../../base/network-policies
+  - ../../../base/resource-quotas

@@ -13,7 +13,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/xyn-pos-v1  # ← Update this
+    repoURL: https://github.com/ilramdhan/xyn-pos-v1
     targetRevision: HEAD
     path: infra/argocd/apps
     directory:

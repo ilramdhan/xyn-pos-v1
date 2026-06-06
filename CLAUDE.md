@@ -94,7 +94,24 @@ xyn-pos-v1/
 │   │   └── CLAUDE.md            ← Web-specific rules
 │   └── mobile/                  ← Flutter app
 │       └── CLAUDE.md            ← Mobile-specific rules
-├── infra/                       ← Terraform, K8s manifests, Docker
+├── infra/
+│   ├── argocd/                  ← ArgoCD App-of-Apps + ApplicationSet
+│   ├── clickhouse/              ← ClickHouse init SQL + Debezium CDC connector
+│   ├── grafana/                 ← Dashboard provisioning (service-health, business-metrics)
+│   ├── k8s/
+│   │   ├── base/                ← Base K8s manifests (all services + infra + network-policies + quotas)
+│   │   └── overlays/            ← Kustomize overlays: dev / staging / prod
+│   ├── krakend/                 ← KrakenD API gateway config
+│   ├── otel/                    ← OTEL Collector config (tail-sampling, multi-backend)
+│   ├── prometheus/              ← Prometheus scrape config
+│   ├── promtail/                ← Promtail → Loki log shipping
+│   └── terraform/               ← Hetzner Cloud + Cloudflare DNS
+├── scripts/
+│   ├── backup/                  ← pg_dump 3×/day, 7d retention, Backblaze B2
+│   ├── k3s/                     ← K3s install + post-install (Helm, Sealed Secrets, ArgoCD)
+│   ├── kafka/                   ← Kafka topic init (idempotent)
+│   ├── postgres/                ← init.sql (databases, RLS roles)
+│   └── templates/               ← Dockerfile.service template
 └── docs/phase-1/                ← All architecture documents
 ```
 

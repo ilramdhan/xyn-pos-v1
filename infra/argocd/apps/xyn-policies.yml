@@ -1,28 +1,28 @@
 ---
-# ArgoCD Application: Infrastructure services (Postgres, Redis, Kafka, MinIO, Keycloak)
-# Deployed to the xyn-infra namespace
-
+# ArgoCD Application: Network Policies + Resource Quotas
+# Must apply BEFORE services to ensure zero-trust networking is in place at deploy time.
+# sync-wave: -5 (after infra wave -10, before services wave 0)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: xyn-infra
+  name: xyn-policies
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "-10"   # Deploy infra first
+    argocd.argoproj.io/sync-wave: "-5"
 spec:
   project: default
   source:
     repoURL: https://github.com/ilramdhan/xyn-pos-v1
     targetRevision: HEAD
-    path: infra/k8s/overlays/dev/infra   # or staging / prod
+    path: infra/k8s/overlays/dev/policies   # change to staging/prod/policies per cluster
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: xyn-infra
+    namespace: xyn-infra   # nominal namespace; resources define their own namespaces
 
   syncPolicy:
     automated:
-      prune: false          # Do NOT auto-delete infra resources
+      prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true

@@ -1,5 +1,6 @@
 # xyn-pos-v1 — Analytics stack extension
-# Adds: ClickHouse 26.5 + Debezium CDC + OTEL Collector
+# Adds: ClickHouse 26.5 + Debezium CDC + Kafka topic init
+# OTEL Collector is in the base docker-compose.yml (not here) to avoid port 4317 conflicts.
 #
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.analytics.yml up -d
@@ -70,34 +71,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks:
-      - xyn-net
-
-  # ─────────────────────────────────────────────────────────
-  # OTEL Collector — centralized telemetry aggregator
-  # All Go services → OTLP 4317 → Collector → Jaeger / Prometheus / Loki
-  # ─────────────────────────────────────────────────────────
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.127.0
-    container_name: xyn-otel-collector
-    command: ["--config=/etc/otel/collector-config.yaml"]
-    volumes:
-      - ./infra/otel/collector-config.yaml:/etc/otel/collector-config.yaml:ro
-    ports:
-      - "4317:4317"   # OTLP gRPC — Go services send traces/metrics/logs here
-      - "4318:4318"   # OTLP HTTP
-      - "8889:8889"   # Prometheus scrape endpoint (Collector-side metrics)
-      - "13133:13133" # Health check
-      - "55679:55679" # zPages debug UI
-    depends_on:
-      - jaeger
-      - prometheus
-      - loki
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:13133/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - xyn-net
 

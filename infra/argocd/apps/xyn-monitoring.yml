@@ -12,7 +12,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/xyn-pos-v1
+    repoURL: https://github.com/ilramdhan/xyn-pos-v1
     targetRevision: HEAD
     path: infra/k8s/overlays/dev/monitoring
 

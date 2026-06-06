@@ -12,10 +12,14 @@
 |---|---|---|---|
 | Phase 1 | Architecture & Blueprinting | ✅ Done | 1–2 weeks |
 | Phase 2 | Environment & Infrastructure Setup | ✅ Done | 1–2 weeks |
-| Phase 3 | Core Domain & Microservices Boilerplate | ⬜ Planned | 2–3 weeks |
+| Phase 3 | Core Domain & Microservices Boilerplate | 🔲 Next | 2–3 weeks |
 | Phase 4 | Backend MVP Implementation | ⬜ Planned | 6–8 weeks |
 | Phase 5 | Frontend Web & Mobile Implementation | ⬜ Planned | 6–8 weeks |
 | Phase 6 | Advanced Features & DevOps | ⬜ Planned | Ongoing |
+
+> **Note — done early:** Several Phase 3 and Phase 6 infrastructure items were completed during Phase 2.
+> These are marked with `✅ Done (early)` in the tables below.
+> This covers: PgBouncer K8s, ClickHouse CDC, OTEL Collector, Backup strategy, Network Policies, ResourceQuota, Sealed Secret examples.
 
 ---
 
@@ -52,7 +56,7 @@
 | # | Story | Tasks | Priority | Status |
 |---|---|---|---|---|
 | 2.1.1 | Initialize monorepo structure | `services/`, `apps/`, `proto/`, `shared/`, `infra/`, `docs/`, `tests/` | 🔴 High | ✅ Done |
-| 2.1.2 | Docker Compose for local dev | PostgreSQL 18.4, Redis 8.8, Kafka 4.3 KRaft (NO ZooKeeper), MinIO, Keycloak, full observability stack | 🔴 High | ✅ Done |
+| 2.1.2 | Docker Compose for local dev | PostgreSQL 18.4, PgBouncer, Redis 8.8, Kafka 4.3 KRaft, MinIO, Keycloak, OTEL Collector, Jaeger, Prometheus, Grafana, Loki | 🔴 High | ✅ Done |
 | 2.1.3 | Go workspace setup | `go.work`, `shared/go/go.mod`, `shared/go/pkg` skeleton | 🔴 High | ✅ Done |
 | 2.1.4 | Buf setup | `buf.yaml`, `buf.gen.yaml` (Go + TS + Dart codegen), common protos (Money, Pagination, Error) | 🔴 High | ✅ Done |
 | 2.1.5 | Golangci-lint setup | `.golangci.yml` v2 format, depguard DDD layer rules, Makefile | 🟡 Medium | ✅ Done |
@@ -62,6 +66,7 @@
 | 2.1.9 | Infrastructure configs | `infra/prometheus/`, `infra/grafana/`, `infra/promtail/` provisioning | 🟡 Medium | ✅ Done |
 | 2.1.10 | Service Dockerfile template | `scripts/templates/Dockerfile.service` — multi-stage, distroless, multi-arch | 🔴 High | ✅ Done |
 | 2.1.11 | PostgreSQL init script | `scripts/postgres/init.sql` — databases per bounded context, RLS roles, helper function | 🔴 High | ✅ Done |
+| 2.1.12 | Analytics local stack | `docker-compose.analytics.yml` — ClickHouse 26.5, Debezium 3.1, Kafka topic init | 🟡 Medium | ✅ Done |
 
 ### Epic 2.2: CI/CD Pipeline
 
@@ -81,7 +86,26 @@
 | 2.3.2 | Ingress + TLS | `traefik-values.yml` + `cluster-issuer.yml` (Let's Encrypt prod + staging) | 🟡 Medium | ✅ Done |
 | 2.3.3 | Persistent volumes | `storage-classes.yml` — xyn-fast (Retain) + xyn-bulk, PVCs for all infra | 🟡 Medium | ✅ Done |
 | 2.3.4 | Namespace structure | `namespaces.yml` — xyn-dev, xyn-staging, xyn-prod, xyn-infra, monitoring | 🟡 Medium | ✅ Done |
-| 2.3.5 | Sealed Secrets | `post-install.sh` auto-backup, `README.md` with full usage guide | 🟡 Medium | ✅ Done |
+| 2.3.5 | Sealed Secrets | `post-install.sh` auto-backup, `README.md` + `examples/` with kubeseal commands | 🟡 Medium | ✅ Done |
+| 2.3.6 | PgBouncer K8s | `infra/k8s/base/infra/pgbouncer.yaml` — transaction mode, 2000 client conns → 25 real PG conns | 🟡 Medium | ✅ Done |
+| 2.3.7 | ClickHouse K8s | `infra/k8s/base/infra/clickhouse.yaml` — StatefulSet, 50Gi PVC, Prometheus metrics | 🟡 Medium | ✅ Done |
+| 2.3.8 | OTEL Collector K8s | `infra/k8s/base/infra/otel-collector.yaml` — 2 replicas, ConfigMap config, tail-sampling | 🟡 Medium | ✅ Done |
+| 2.3.9 | Backup CronJob K8s | `infra/k8s/base/infra/backup-cronjob.yaml` — 3×/day, 7d retention, PVC + rclone B2 | 🟡 Medium | ✅ Done |
+
+### Epic 2.4: Security & Operations (completed during Phase 2)
+
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 2.4.1 | Network Policies | `infra/k8s/base/network-policies/` — default-deny-all, explicit allow paths for every service→infra route | 🔴 High | ✅ Done |
+| 2.4.2 | ResourceQuota + LimitRange | `infra/k8s/base/resource-quotas/` — per-namespace CPU/memory limits, prevents noisy-neighbour issues | 🟡 Medium | ✅ Done |
+| 2.4.3 | Network + quota overlays | `infra/k8s/overlays/{dev,staging,prod}/policies/kustomization.yaml` | 🟡 Medium | ✅ Done |
+| 2.4.4 | ArgoCD xyn-policies app | `infra/argocd/apps/xyn-policies.yml` — sync-wave -5, applies before services | 🟡 Medium | ✅ Done |
+| 2.4.5 | ClickHouse CDC pipeline | `infra/clickhouse/init/` — Kafka engine tables + MergeTree + materialized views for orders/payments/inventory | 🟡 Medium | ✅ Done |
+| 2.4.6 | Debezium CDC connector | `infra/clickhouse/debezium-connector.json` — PostgreSQL WAL → Kafka topics → ClickHouse | 🟡 Medium | ✅ Done |
+| 2.4.7 | Kafka topic init script | `scripts/kafka/init-topics.sh` — idempotent, creates all CDC + domain event + DLQ topics | 🟡 Medium | ✅ Done |
+| 2.4.8 | Backup scripts | `scripts/backup/{backup.sh,restore.sh,rclone.conf.example}` — pg_dump all 6 DBs, 3×/day, 7d retention | 🟡 Medium | ✅ Done |
+| 2.4.9 | OTEL Collector config | `infra/otel/collector-config.yaml` — tail-sampling, multi-backend export, per-pipeline routing | 🟡 Medium | ✅ Done |
+| 2.4.10 | ArgoCD repoURL fixed | All `infra/argocd/apps/*.yml` updated from `your-org` placeholder to `ilramdhan/xyn-pos-v1` | 🔴 High | ✅ Done |
 
 ---
 
@@ -126,13 +150,13 @@ Use the Tenant service as the template — all other services follow this patter
 
 ### Epic 3.4: Database Infrastructure
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 3.4.1 | PostgreSQL schema design | Run through ERD from architecture.md, finalize all tables | 🔴 High |
-| 3.4.2 | RLS policy templates | `enable_rls.sql` template function for all tables | 🔴 High |
-| 3.4.3 | PgBouncer config | Docker Compose + K8s deployment | 🟡 Medium |
-| 3.4.4 | Redis setup | Redis Cluster config for local dev | 🟡 Medium |
-| 3.4.5 | ClickHouse setup | Docker Compose, initial schema for analytics tables | 🟢 Low |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 3.4.1 | PostgreSQL schema design | Run through ERD from architecture.md, finalize all tables | 🔴 High | ⬜ Planned |
+| 3.4.2 | RLS policy templates | `enable_rls.sql` template function for all tables | 🔴 High | ⬜ Planned |
+| 3.4.3 | PgBouncer config | Docker Compose + K8s deployment | 🟡 Medium | ✅ Done (early) |
+| 3.4.4 | Redis setup | Redis Cluster config for local dev | 🟡 Medium | ⬜ Planned |
+| 3.4.5 | ClickHouse setup | Docker Compose + K8s + initial CDC schema + materialized views | 🟢 Low | ✅ Done (early) |
 
 ---
 
@@ -286,38 +310,38 @@ Use the Tenant service as the template — all other services follow this patter
 
 ### Epic 6.2: Analytics
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 6.2.1 | Debezium CDC setup | PostgreSQL → Kafka → ClickHouse pipeline | 🟡 Medium |
-| 6.2.2 | ClickHouse schema | Analytics tables, materialized views | 🟡 Medium |
-| 6.2.3 | Real-time sales dashboard | Revenue, orders, avg transaction via ClickHouse | 🟡 Medium |
-| 6.2.4 | Product performance | Top sellers, dead stock, sell-through rate | 🟢 Low |
-| 6.2.5 | COGS & profitability | Gross margin per product (requires BOM) | 🟢 Low |
-| 6.2.6 | AI demand forecasting | Time-series forecasting for stock replenishment | 🟢 Low |
-| 6.2.7 | Customer churn prediction | ML model based on purchase frequency | 🟢 Low |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 6.2.1 | Debezium CDC setup | PostgreSQL WAL → Kafka topics → ClickHouse Kafka engine | 🟡 Medium | ✅ Done (early) |
+| 6.2.2 | ClickHouse schema | Kafka engine tables + MergeTree + materialized views (orders, payments, inventory) | 🟡 Medium | ✅ Done (early) |
+| 6.2.3 | Real-time sales dashboard | Revenue, orders, avg transaction via ClickHouse + Grafana | 🟡 Medium | ✅ Done (early) |
+| 6.2.4 | Product performance | Top sellers, dead stock, sell-through rate | 🟢 Low | ⬜ Planned |
+| 6.2.5 | COGS & profitability | Gross margin per product (requires BOM) | 🟢 Low | ⬜ Planned |
+| 6.2.6 | AI demand forecasting | Time-series forecasting for stock replenishment | 🟢 Low | ⬜ Planned |
+| 6.2.7 | Customer churn prediction | ML model based on purchase frequency | 🟢 Low | ⬜ Planned |
 
 ### Epic 6.3: Observability
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 6.3.1 | OpenTelemetry setup | Instrument all Go services with OTEL SDK | 🔴 High |
-| 6.3.2 | Jaeger distributed tracing | Deploy Jaeger, connect OTEL exporter | 🟡 Medium |
-| 6.3.3 | Prometheus metrics | Custom business metrics (orders/min, payment failures) | 🟡 Medium |
-| 6.3.4 | Grafana dashboards | Service health, business KPIs, infrastructure | 🟡 Medium |
-| 6.3.5 | Log aggregation | Promtail + Loki, log correlation with trace IDs | 🟡 Medium |
-| 6.3.6 | Alerting rules | PagerDuty/Slack alerts for SLO breaches | 🟢 Low |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 6.3.1 | OpenTelemetry setup | Instrument all Go services with OTEL SDK | 🔴 High | ⬜ Planned |
+| 6.3.2 | Jaeger + OTEL Collector | Centralized Collector (tail-sampling), Jaeger storage, distributed trace IDs across services | 🟡 Medium | ✅ Done (early) |
+| 6.3.3 | Prometheus metrics | Custom business metrics (orders/min, payment failures) | 🟡 Medium | ⬜ Planned |
+| 6.3.4 | Grafana dashboards | Service health + business KPIs (service-health.json, business-metrics.json) | 🟡 Medium | ✅ Done (early) |
+| 6.3.5 | Log aggregation | Promtail + Loki, log correlation with trace IDs via OTEL Collector | 🟡 Medium | ✅ Done (early) |
+| 6.3.6 | Alerting rules | PagerDuty/Slack alerts for SLO breaches | 🟢 Low | ⬜ Planned |
 
 ### Epic 6.4: Production Readiness (Kubernetes)
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 6.4.1 | Helm charts | Templated K8s manifests for all services | 🟡 Medium |
-| 6.4.2 | HPA / VPA | Auto-scaling policies per service | 🟡 Medium |
-| 6.4.3 | PodDisruptionBudget | Ensure availability during node maintenance | 🟡 Medium |
-| 6.4.4 | Network policies | Restrict inter-service communication | 🟡 Medium |
-| 6.4.5 | Load testing | k6 scenarios: checkout flow, inventory queries | 🟡 Medium |
-| 6.4.6 | Blue-Green deployment | Zero-downtime deployment strategy via ArgoCD | 🟢 Low |
-| 6.4.7 | Disaster recovery drill | Test backup restore, simulate database failure | 🟢 Low |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 6.4.1 | Kustomize base + overlays | Base K8s manifests + dev/staging/prod overlays (Kustomize, not Helm) | 🟡 Medium | ✅ Done (early) |
+| 6.4.2 | HPA / VPA | Auto-scaling policies per service (prod overlay: min 3, max 10, CPU 70%) | 🟡 Medium | ✅ Done (early) |
+| 6.4.3 | PodDisruptionBudget | `minAvailable: 2` for all services in prod overlay | 🟡 Medium | ✅ Done (early) |
+| 6.4.4 | Network policies | Default-deny-all + explicit allow rules, ArgoCD xyn-policies app (sync-wave -5) | 🟡 Medium | ✅ Done (early) |
+| 6.4.5 | Load testing | k6 scenarios: checkout flow, SLO thresholds (P95 < 500ms, error < 1%) | 🟡 Medium | ✅ Done (early) |
+| 6.4.6 | Blue-Green deployment | Zero-downtime deployment strategy via ArgoCD | 🟢 Low | ⬜ Planned |
+| 6.4.7 | Backup + disaster recovery | `scripts/backup/backup.sh` — 3×/day, 7d retention, VPS + Backblaze B2; K8s CronJob | 🟢 Low | ✅ Done (early) |
 
 ---
 
