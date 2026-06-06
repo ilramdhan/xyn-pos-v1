@@ -1,6 +1,6 @@
-# golangci-lint v2.12.2 — v2 config format (breaking change from v1)
+# golangci-lint v2.12.2 — v2 config format
+# v2 breaking changes: goimports/gofmt → formatters section, exclusions → linters.exclusions.rules
 # Run: golangci-lint run ./...
-# Docs: https://golangci-lint.run/usage/configuration/
 
 version: "2"
 
@@ -20,8 +20,6 @@ linters:
 
     # Code quality
     - revive            # Replaces golint
-    - gofmt             # Formatting
-    - goimports         # Import ordering
     - misspell          # Spelling errors
     - godot             # Comment punctuation
 
@@ -36,7 +34,6 @@ linters:
     # Performance
     - prealloc          # Slice preallocation
 
-  # v2: linters-settings moved under linters.settings
   settings:
     revive:
       rules:
@@ -50,9 +47,6 @@ linters:
     gosec:
       excludes:
         - G115  # Integer overflow (too noisy in protobuf code)
-
-    goimports:
-      local-prefixes: github.com/xyn-pos
 
     depguard:
       rules:
@@ -78,29 +72,35 @@ linters:
             - pkg: "google.golang.org/grpc"
               desc: "Application layer must not import grpc"
 
-issues:
-  # v2: exclude-rules moved under issues.exclusions.rules
+  # v2: exclusion rules live here, not in issues.exclude-rules
   exclusions:
     rules:
-      # Allow magic numbers in migrations
       - path: "migrations/"
-        linters: [gomnd, revive]
+        linters: [revive]
 
-      # Allow fmt.Println in cmd/
       - path: "cmd/"
         linters: [forbidigo]
 
-      # Generated code
       - path: "gen/"
         linters:
           - revive
           - errcheck
           - govet
 
+# v2: gofmt and goimports are formatters, not linters
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: github.com/xyn-pos
+
+issues:
   max-issues-per-linter: 50
   max-same-issues: 5
 
 output:
-  # v2: formats is a map; 'colored-line-number' renamed to 'text' in v2
+  # v2: formats is a map; 'text' replaces 'colored-line-number' from v1
   formats:
     text: {}
