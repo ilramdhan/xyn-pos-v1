@@ -1,0 +1,235 @@
+---
+# Allow: services → pgbouncer (PostgreSQL)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-postgres
+  namespace: xyn-infra
+spec:
+  podSelector:
+    matchLabels:
+      app: pgbouncer
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Allow: services → redis
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-redis
+  namespace: xyn-infra
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# Allow: services → kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-kafka
+  namespace: xyn-infra
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+        - podSelector:
+            matchLabels:
+              app: debezium
+      ports:
+        - protocol: TCP
+          port: 9092
+---
+# Allow: services → OTEL Collector (send traces/metrics/logs)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-otel
+  namespace: xyn-infra
+spec:
+  podSelector:
+    matchLabels:
+      app: otel-collector
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+      ports:
+        - protocol: TCP
+          port: 4317   # OTLP gRPC
+        - protocol: TCP
+          port: 4318   # OTLP HTTP
+---
+# Allow: analytics service → ClickHouse
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-analytics-to-clickhouse
+  namespace: xyn-infra
+spec:
+  podSelector:
+    matchLabels:
+      app: clickhouse
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+          podSelector:
+            matchLabels:
+              app: analytics
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 8123   # HTTP API
+        - protocol: TCP
+          port: 9000   # Native protocol
+---
+# Allow: KrakenD → services (API gateway to backend gRPC)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-krakend-to-services
+  namespace: xyn-services
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-infra
+          podSelector:
+            matchLabels:
+              app: krakend
+      ports:
+        - protocol: TCP
+          port: 8051   # tenant HTTP
+        - protocol: TCP
+          port: 8052   # pos HTTP
+        - protocol: TCP
+          port: 8053   # payment HTTP
+        - protocol: TCP
+          port: 8054   # inventory HTTP
+        - protocol: TCP
+          port: 8055   # kitchen HTTP
+        - protocol: TCP
+          port: 8056   # analytics HTTP
+---
+# Allow: services can call each other (gRPC inter-service communication)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-inter-service-grpc
+  namespace: xyn-services
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+      ports:
+        - protocol: TCP
+          port: 50051
+        - protocol: TCP
+          port: 50052
+        - protocol: TCP
+          port: 50053
+        - protocol: TCP
+          port: 50054
+        - protocol: TCP
+          port: 50055
+        - protocol: TCP
+          port: 50056
+---
+# Allow: services can reach OTEL + Kafka (egress from xyn-services)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-egress
+  namespace: xyn-services
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # xyn-infra namespace (postgres, redis, kafka, otel, clickhouse)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-infra
+    # inter-service gRPC within xyn-services
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-services
+    # Keycloak (external auth — allowed to reach HTTPS)
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+---
+# Allow: Prometheus scrape from xyn-infra → xyn-services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: xyn-services
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: xyn-infra
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090

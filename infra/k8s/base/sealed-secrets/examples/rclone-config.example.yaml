@@ -1,0 +1,20 @@
+# EXAMPLE — SealedSecret for rclone Backblaze B2 config (used by backup CronJob)
+# To create:
+#   kubectl create secret generic rclone-config \
+#     --namespace xyn-infra \
+#     --from-file=rclone.conf=/path/to/your/filled/rclone.conf \
+#     --dry-run=client -o yaml | kubeseal --format yaml \
+#     > infra/k8s/base/sealed-secrets/rclone-config.yaml
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: rclone-config
+  namespace: xyn-infra
+spec:
+  encryptedData:
+    rclone.conf: <SEALED_BASE64_HERE>
+  template:
+    metadata:
+      name: rclone-config
+      namespace: xyn-infra
+    type: Opaque

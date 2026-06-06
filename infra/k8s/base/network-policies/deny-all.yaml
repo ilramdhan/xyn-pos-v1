@@ -1,0 +1,26 @@
+---
+# Default deny-all for xyn-services namespace
+# WHY: Zero-trust starting point — every allowed communication must be explicitly listed.
+# Services that need cross-namespace traffic have separate allow policies.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: xyn-services
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Default deny-all for xyn-infra namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: xyn-infra
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
