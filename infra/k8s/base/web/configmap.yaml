@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  labels:
+    app: web
+data:
+  NEXT_PUBLIC_API_URL: "https://api.xyn-pos.dev"    # Override per overlay
+  NEXT_PUBLIC_APP_ENV: "production"

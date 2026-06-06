@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-config
+  labels:
+    app: tenant
+data:
+  APP_ENV: "production"
+  KAFKA_BROKERS: "kafka.xyn-infra.svc.cluster.local:9092"
+  REDIS_HOST: "redis.xyn-infra.svc.cluster.local"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger.monitoring.svc.cluster.local:4317"
+  LOG_LEVEL: "info"
