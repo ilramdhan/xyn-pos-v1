@@ -1,0 +1,6 @@
+# Monitoring namespace — Prometheus/Grafana deployed via Helm
+# See: scripts/k3s/post-install.sh
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring

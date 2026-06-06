@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: xyn-staging
+
+resources:
+  - ../../../base/pos
+
+images:
+  - name: ghcr.io/xyn-pos/xyn-pos-pos
+    newTag: staging
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /data/APP_ENV
+        value: staging
+    target:
+      kind: Deployment
+      name: pos

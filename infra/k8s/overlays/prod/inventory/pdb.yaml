@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: inventory
+  namespace: xyn-prod
+spec:
+  minAvailable: 2   # Always keep at least 2 pods up during node maintenance
+  selector:
+    matchLabels:
+      app: inventory

@@ -1,0 +1,45 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: xyn-prod
+
+resources:
+  - ../../../base/web
+  - hpa.yaml
+  - pdb.yaml
+
+images:
+  - name: ghcr.io/xyn-pos/xyn-pos-web
+    newTag: latest
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: web
+  - patch: |-
+      - op: replace
+        path: /data/NEXT_PUBLIC_API_URL
+        value: https://api.xyn-pos.dev
+      - op: replace
+        path: /data/NEXT_PUBLIC_APP_ENV
+        value: production
+    target:
+      kind: ConfigMap
+      name: web-config
+  - patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: app.xyn-pos.dev
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: app.xyn-pos.dev
+      - op: replace
+        path: /spec/tls/0/secretName
+        value: web-prod-tls
+    target:
+      kind: Ingress
+      name: web
