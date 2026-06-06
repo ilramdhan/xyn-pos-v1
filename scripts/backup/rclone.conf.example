@@ -1,0 +1,14 @@
+# rclone config for Backblaze B2 — copy to /etc/rclone/rclone.conf and fill values
+# Never commit the real rclone.conf — it contains API keys
+#
+# To set up:
+#   1. Create a Backblaze account at https://www.backblaze.com/
+#   2. Create a bucket named: xyn-pos-backups
+#   3. Create an Application Key with read+write access to that bucket
+#   4. Copy this file to /etc/rclone/rclone.conf and fill in the values
+
+[b2]
+type = b2
+account = YOUR_B2_ACCOUNT_ID
+key = YOUR_B2_APPLICATION_KEY
+hard_delete = false
