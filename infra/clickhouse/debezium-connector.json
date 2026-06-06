@@ -1,0 +1,52 @@
+{
+  "_comment": "Debezium PostgreSQL CDC connector config — POST to http://debezium:8083/connectors",
+  "name": "xyn-postgres-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "migration_user",
+    "database.password": "${file:/kafka/secrets/postgres-credentials.properties:password}",
+    "database.dbname": "xyn_pos",
+    "database.server.name": "xyn",
+
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_xyn",
+    "publication.name": "debezium_publication",
+
+    "table.include.list": "public.orders,public.order_items,public.payments",
+
+    "topic.prefix": "xyn",
+    "topic.creation.default.replication.factor": "1",
+    "topic.creation.default.partitions": "3",
+    "topic.creation.default.cleanup.policy": "delete",
+    "topic.creation.default.retention.ms": "604800000",
+
+    "transforms": "unwrap,addPrefix",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.unwrap.add.fields": "op,ts_ms",
+    "transforms.unwrap.add.headers": "db,table",
+    "transforms.addPrefix.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+
+    "heartbeat.interval.ms": "10000",
+    "heartbeat.action.query": "UPDATE public.debezium_heartbeat SET ts = now() WHERE id = 1",
+
+    "snapshot.mode": "initial",
+    "snapshot.locking.mode": "minimal",
+
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+    "errors.deadletterqueue.topic.name": "xyn.dlq.postgres-cdc",
+    "errors.deadletterqueue.topic.replication.factor": "1"
+  }
+}

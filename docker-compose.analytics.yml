@@ -1,0 +1,153 @@
+# xyn-pos-v1 — Analytics stack extension
+# Adds: ClickHouse 26.5 + Debezium CDC + OTEL Collector
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.analytics.yml up -d
+#
+# Prerequisites: base docker-compose.yml must be up (PostgreSQL + Kafka required)
+
+name: xyn-pos
+
+services:
+
+  # ─────────────────────────────────────────────────────────
+  # ClickHouse 26.5 — OLAP analytics database
+  # ─────────────────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.5
+    container_name: xyn-clickhouse
+    environment:
+      CLICKHOUSE_USER: xyn_analytics
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse_secret}
+      CLICKHOUSE_DB: xyn_analytics
+    ports:
+      - "8123:8123"   # HTTP API (used by Grafana)
+      - "9000:9000"   # Native protocol (used by Go analytics service)
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/clickhouse/config:/etc/clickhouse-server/config.d:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Debezium 3.1 — Kafka Connect + PostgreSQL CDC connector
+  # Reads PostgreSQL WAL → produces CDC events to Kafka
+  # ─────────────────────────────────────────────────────────
+  debezium:
+    image: debezium/connect:3.1
+    container_name: xyn-debezium
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: debezium-xyn
+      CONFIG_STORAGE_TOPIC: debezium.configs
+      OFFSET_STORAGE_TOPIC: debezium.offsets
+      STATUS_STORAGE_TOPIC: debezium.status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_PRODUCER_INTERCEPTOR_CLASSES: "io.debezium.transforms.tracing.ActivateTracingSpan"
+      CONNECT_REST_ADVERTISED_HOST_NAME: debezium
+    ports:
+      - "8083:8083"   # Kafka Connect REST API
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/connectors"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # OTEL Collector — centralized telemetry aggregator
+  # All Go services → OTLP 4317 → Collector → Jaeger / Prometheus / Loki
+  # ─────────────────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.127.0
+    container_name: xyn-otel-collector
+    command: ["--config=/etc/otel/collector-config.yaml"]
+    volumes:
+      - ./infra/otel/collector-config.yaml:/etc/otel/collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC — Go services send traces/metrics/logs here
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus scrape endpoint (Collector-side metrics)
+      - "13133:13133" # Health check
+      - "55679:55679" # zPages debug UI
+    depends_on:
+      - jaeger
+      - prometheus
+      - loki
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:13133/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Debezium connector auto-registration
+  # Registers the connector config once Debezium is healthy
+  # ─────────────────────────────────────────────────────────
+  debezium-init:
+    image: curlimages/curl:8.12.1
+    container_name: xyn-debezium-init
+    depends_on:
+      debezium:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Registering Debezium connector...' &&
+        curl -f -X POST http://debezium:8083/connectors \
+          -H 'Content-Type: application/json' \
+          -d @/config/debezium-connector.json &&
+        echo 'Connector registered successfully.'
+      "
+    volumes:
+      - ./infra/clickhouse/debezium-connector.json:/config/debezium-connector.json:ro
+    restart: on-failure
+    networks:
+      - xyn-net
+
+  # ─────────────────────────────────────────────────────────
+  # Kafka topic initialization (runs once, then exits)
+  # ─────────────────────────────────────────────────────────
+  kafka-init:
+    image: bitnami/kafka:4.0
+    container_name: xyn-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: ["/scripts/init-topics.sh"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes:
+      - ./scripts/kafka/init-topics.sh:/scripts/init-topics.sh:ro
+    restart: "no"
+    networks:
+      - xyn-net
+
+volumes:
+  clickhouse-data:
+    driver: local
+
+networks:
+  xyn-net:
+    external: true
+    name: xyn-pos_xyn-net
