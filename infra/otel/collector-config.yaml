@@ -1,0 +1,135 @@
+# OpenTelemetry Collector — xyn-pos-v1
+# Version: 0.127.0 (otel/opentelemetry-collector-contrib)
+#
+# Architecture:
+#   All Go services → OTLP gRPC 4317 → Collector → Jaeger  (traces)
+#                                               → Prometheus (metrics)
+#                                               → Loki       (logs)
+#
+# WHY a Collector instead of direct export?
+#   - Swap/add exporters without changing service code
+#   - Tail-sampling: only keep slow or error traces (saves storage)
+#   - Batching + retry: services stay fast even if backend is slow
+#   - Central attribute enrichment (add k8s namespace, pod name etc.)
+
+receivers:
+  # OTLP from all Go microservices
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Pull Prometheus metrics from KrakenD gateway
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: krakend
+          static_configs:
+            - targets: ["krakend:8080"]
+          metrics_path: /__stats/
+
+processors:
+  # Batch for efficiency — flush every 5s or when 512 spans accumulated
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+  # Memory limiter — prevents OOM if backend is slow
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Enrich all telemetry with resource attributes
+  resource:
+    attributes:
+      - key: deployment.environment
+        from_attribute: service.namespace
+        action: insert
+      - key: xyn.cluster
+        value: xyn-pos
+        action: insert
+
+  # Tail-based sampling — only keep:
+  #   - All ERROR traces (100%)
+  #   - Slow traces > 1s (100%)
+  #   - 5% of normal successful traces (reduce storage)
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100000
+    expected_new_traces_per_sec: 500
+    policies:
+      - name: errors-policy
+        type: status_code
+        status_code: { status_codes: [ERROR] }
+      - name: slow-traces-policy
+        type: latency
+        latency: { threshold_ms: 1000 }
+      - name: probabilistic-sample
+        type: probabilistic
+        probabilistic: { sampling_percentage: 5 }
+
+exporters:
+  # Jaeger — distributed traces
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Prometheus — metrics exposed for scraping
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: xyn
+    send_timestamps: true
+    metric_expiration: 5m
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # Loki — structured logs with trace correlation
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    tls:
+      insecure: true
+    labels:
+      attributes:
+        service.name: "service"
+        service.version: "version"
+        deployment.environment: "environment"
+      resource:
+        k8s.namespace.name: "namespace"
+        k8s.pod.name: "pod"
+
+  # Debug exporter (disable in production)
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 100
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1888
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers:  [otlp]
+      processors: [memory_limiter, batch, resource, tail_sampling]
+      exporters:  [otlp/jaeger]
+
+    metrics:
+      receivers:  [otlp, prometheus]
+      processors: [memory_limiter, batch, resource]
+      exporters:  [prometheus]
+
+    logs:
+      receivers:  [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters:  [loki]
