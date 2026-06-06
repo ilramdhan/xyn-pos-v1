@@ -101,6 +101,6 @@ issues:
   max-same-issues: 5
 
 output:
-  # v2: formats is a list of objects (not a map)
+  # v2: formats is a map; 'colored-line-number' renamed to 'text' in v2
   formats:
-    - format: colored-line-number
+    text: {}
