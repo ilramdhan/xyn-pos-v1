@@ -1,0 +1,364 @@
+{
+  "$schema": "https://www.krakend.io/schema/v3.json",
+  "version": 3,
+  "name": "xyn-pos API Gateway",
+  "timeout": "10s",
+  "cache_ttl": "300s",
+  "output_encoding": "json",
+  "port": 8080,
+
+  "extra_config": {
+    "telemetry/opentelemetry": {
+      "service_name": "krakend",
+      "service_version": "2.9.2",
+      "exporters": {
+        "otlp": [
+          {
+            "name": "jaeger",
+            "host": "jaeger",
+            "port": 4317,
+            "use_http": false
+          }
+        ]
+      }
+    },
+    "telemetry/logging": {
+      "level": "INFO",
+      "prefix": "[KRAKEND]",
+      "syslog": false,
+      "stdout": true,
+      "format": "logstash"
+    },
+    "security/cors": {
+      "allow_origins": ["https://app.xyn-pos.dev", "https://app.staging.xyn-pos.dev", "http://localhost:3000"],
+      "allow_methods": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+      "allow_headers": ["Origin", "Authorization", "Content-Type", "X-Idempotency-Key", "X-Request-ID"],
+      "expose_headers": ["Content-Length", "X-Request-ID"],
+      "allow_credentials": true,
+      "max_age": "12h"
+    },
+    "auth/validator": {
+      "alg": "RS256",
+      "jwk_url": "http://keycloak:8080/realms/xyn-pos/protocol/openid-connect/certs",
+      "cache": true,
+      "cache_duration": 900,
+      "operation_debug": false
+    }
+  },
+
+  "endpoints": [
+
+    {
+      "__comment": "═══════════════════ TENANT SERVICE ═══════════════════",
+      "endpoint": "/v1/tenants",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": {
+        "auth/validator": { "alg": "RS256", "roles": ["owner"] }
+      },
+      "backend": [{
+        "url_pattern": "/v1/tenants",
+        "host": ["http://tenant:8051"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/tenants/{id}",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/tenants/{id}",
+        "host": ["http://tenant:8051"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/branches",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/branches",
+        "host": ["http://tenant:8051"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+
+    {
+      "__comment": "═══════════════════ POS SERVICE ═══════════════════",
+      "endpoint": "/v1/orders",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/orders",
+        "host": ["http://pos:8052"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/orders",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/orders",
+        "host": ["http://pos:8052"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/orders/{id}",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/orders/{id}",
+        "host": ["http://pos:8052"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/orders/{id}/items",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/orders/{id}/items",
+        "host": ["http://pos:8052"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/orders/{id}/items/{item_id}",
+      "method": "DELETE",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/orders/{id}/items/{item_id}",
+        "host": ["http://pos:8052"],
+        "method": "DELETE",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/products",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/products",
+        "host": ["http://pos:8052"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/products",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": {
+        "auth/validator": { "alg": "RS256", "roles": ["owner", "manager"] }
+      },
+      "backend": [{
+        "url_pattern": "/v1/products",
+        "host": ["http://pos:8052"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/products/{id}",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/products/{id}",
+        "host": ["http://pos:8052"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/products/lookup/{sku}",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/products/lookup/{sku}",
+        "host": ["http://pos:8052"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/shifts",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/shifts",
+        "host": ["http://pos:8052"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+
+    {
+      "__comment": "═══════════════════ PAYMENT SERVICE ═══════════════════",
+      "endpoint": "/v1/payments",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": {
+        "auth/validator": { "alg": "RS256" },
+        "qos/ratelimit/proxy": {
+          "max_rate": 100,
+          "capacity": 100
+        }
+      },
+      "backend": [{
+        "url_pattern": "/v1/payments",
+        "host": ["http://payment:8053"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/payments/{id}",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/payments/{id}",
+        "host": ["http://payment:8053"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/payments/{id}/void",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": {
+        "auth/validator": { "alg": "RS256", "roles": ["owner", "manager"] }
+      },
+      "backend": [{
+        "url_pattern": "/v1/payments/{id}/void",
+        "host": ["http://payment:8053"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/payments/{id}/refund",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": {
+        "auth/validator": { "alg": "RS256", "roles": ["owner", "manager"] }
+      },
+      "backend": [{
+        "url_pattern": "/v1/payments/{id}/refund",
+        "host": ["http://payment:8053"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/webhooks/payment",
+      "method": "POST",
+      "output_encoding": "json",
+      "backend": [{
+        "url_pattern": "/v1/webhooks/payment",
+        "host": ["http://payment:8053"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+
+    {
+      "__comment": "═══════════════════ INVENTORY SERVICE ═══════════════════",
+      "endpoint": "/v1/stock",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/stock",
+        "host": ["http://inventory:8054"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/stock/adjust",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": {
+        "auth/validator": { "alg": "RS256", "roles": ["owner", "manager"] }
+      },
+      "backend": [{
+        "url_pattern": "/v1/stock/adjust",
+        "host": ["http://inventory:8054"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+
+    {
+      "__comment": "═══════════════════ KITCHEN SERVICE ═══════════════════",
+      "endpoint": "/v1/tickets",
+      "method": "GET",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/tickets",
+        "host": ["http://kitchen:8055"],
+        "method": "GET",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/tickets/{id}/complete",
+      "method": "POST",
+      "output_encoding": "json",
+      "extra_config": { "auth/validator": { "alg": "RS256" } },
+      "backend": [{
+        "url_pattern": "/v1/tickets/{id}/complete",
+        "host": ["http://kitchen:8055"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+
+    {
+      "__comment": "═══════════════════ AUTH (passthrough to Keycloak) ═══════════════════",
+      "endpoint": "/v1/auth/login",
+      "method": "POST",
+      "output_encoding": "json",
+      "backend": [{
+        "url_pattern": "/realms/xyn-pos/protocol/openid-connect/token",
+        "host": ["http://keycloak:8080"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    },
+    {
+      "endpoint": "/v1/auth/refresh",
+      "method": "POST",
+      "output_encoding": "json",
+      "backend": [{
+        "url_pattern": "/realms/xyn-pos/protocol/openid-connect/token",
+        "host": ["http://keycloak:8080"],
+        "method": "POST",
+        "encoding": "json"
+      }]
+    }
+  ]
+}
