@@ -1,0 +1,182 @@
+---
+# OpenTelemetry Collector — centralized telemetry aggregator
+# All Go microservices → OTLP 4317 → Collector → Jaeger / Prometheus / Loki
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: xyn-infra
+  labels:
+    app: otel-collector
+    component: observability
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        component: observability
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8889"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.127.0
+          args: ["--config=/conf/collector-config.yaml"]
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+            - name: prometheus
+              containerPort: 8889
+            - name: health
+              containerPort: 13133
+            - name: zpages
+              containerPort: 55679
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: xyn-infra
+  labels:
+    app: otel-collector
+spec:
+  selector:
+    app: otel-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: prometheus
+      port: 8889
+      targetPort: 8889
+    - name: health
+      port: 13133
+      targetPort: 13133
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: xyn-infra
+data:
+  collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 512
+        send_batch_max_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 400
+        spike_limit_mib: 100
+      resource:
+        attributes:
+          - key: xyn.cluster
+            value: xyn-pos
+            action: insert
+      tail_sampling:
+        decision_wait: 10s
+        num_traces: 100000
+        expected_new_traces_per_sec: 500
+        policies:
+          - name: errors-policy
+            type: status_code
+            status_code: { status_codes: [ERROR] }
+          - name: slow-traces-policy
+            type: latency
+            latency: { threshold_ms: 1000 }
+          - name: probabilistic-sample
+            type: probabilistic
+            probabilistic: { sampling_percentage: 5 }
+
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger.xyn-infra.svc.cluster.local:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8889
+        namespace: xyn
+        send_timestamps: true
+        resource_to_telemetry_conversion:
+          enabled: true
+      loki:
+        endpoint: http://loki.xyn-infra.svc.cluster.local:3100/loki/api/v1/push
+        tls:
+          insecure: true
+        labels:
+          attributes:
+            service.name: "service"
+            deployment.environment: "environment"
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers:  [otlp]
+          processors: [memory_limiter, batch, resource, tail_sampling]
+          exporters:  [otlp/jaeger]
+        metrics:
+          receivers:  [otlp]
+          processors: [memory_limiter, batch, resource]
+          exporters:  [prometheus]
+        logs:
+          receivers:  [otlp]
+          processors: [memory_limiter, batch, resource]
+          exporters:  [loki]

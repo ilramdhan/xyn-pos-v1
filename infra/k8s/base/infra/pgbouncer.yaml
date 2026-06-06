@@ -1,0 +1,130 @@
+---
+# PgBouncer 1.24.1 — Connection pooler for PostgreSQL 18.4
+# WHY: PostgreSQL has a hard max_connections limit (default 100). Each Go service pod
+# can hold 25 pgxpool connections. At 10 pods × 6 services = 60 pods → 1500 connections
+# which exhausts PostgreSQL. PgBouncer multiplexes connections: 1500 app connections →
+# 50 actual PostgreSQL connections. transaction mode is required for pgxpool.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: xyn-infra
+  labels:
+    app: pgbouncer
+    component: database
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+        component: database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9127"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: pgbouncer
+          image: bitnami/pgbouncer:1.24.1
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_HOST
+              value: "postgres.xyn-infra.svc.cluster.local"
+            - name: POSTGRESQL_PORT
+              value: "5432"
+            - name: PGBOUNCER_DATABASE
+              value: "*"
+            - name: PGBOUNCER_POOL_MODE
+              value: "transaction"
+            - name: PGBOUNCER_MAX_CLIENT_CONN
+              value: "2000"
+            - name: PGBOUNCER_DEFAULT_POOL_SIZE
+              value: "25"
+            - name: PGBOUNCER_MIN_POOL_SIZE
+              value: "5"
+            - name: PGBOUNCER_RESERVE_POOL_SIZE
+              value: "10"
+            - name: PGBOUNCER_RESERVE_POOL_TIMEOUT
+              value: "5"
+            - name: PGBOUNCER_IGNORE_STARTUP_PARAMETERS
+              value: "extra_float_digits"
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: username
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # PgBouncer needs /tmp
+            capabilities:
+              drop: [ALL]
+
+        # pgbouncer_exporter — exposes metrics to Prometheus
+        - name: metrics
+          image: prometheuscommunity/pgbouncer-exporter:v0.9.0
+          args: ["--pgBouncer.connectionString=postgres://pgbouncer:$(PGBOUNCER_ADMIN_PASS)@localhost:6432/pgbouncer"]
+          ports:
+            - name: metrics
+              containerPort: 9127
+          env:
+            - name: PGBOUNCER_ADMIN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: pgbouncer-admin-password
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer
+  namespace: xyn-infra
+  labels:
+    app: pgbouncer
+spec:
+  selector:
+    app: pgbouncer
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+    - name: metrics
+      port: 9127
+      targetPort: 9127

@@ -1,0 +1,179 @@
+---
+# ClickHouse 26.5 — Analytics OLAP database
+# Used by: analytics service, Grafana dashboards
+# Receives data from: Kafka CDC topics (via Kafka engine + materialized views)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse
+  namespace: xyn-infra
+  labels:
+    app: clickhouse
+    component: analytics
+spec:
+  serviceName: clickhouse-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+        component: analytics
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9363"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 101
+      initContainers:
+        - name: init-config
+          image: busybox:1.36
+          command: ["sh", "-c", "cp /configmap/* /etc/clickhouse-server/config.d/"]
+          volumeMounts:
+            - name: config
+              mountPath: /configmap
+            - name: config-dir
+              mountPath: /etc/clickhouse-server/config.d
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:26.5
+          ports:
+            - name: http
+              containerPort: 8123
+            - name: native
+              containerPort: 9000
+            - name: metrics
+              containerPort: 9363
+          env:
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: clickhouse-credentials
+                  key: username
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clickhouse-credentials
+                  key: password
+            - name: CLICKHOUSE_DB
+              value: xyn_analytics
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/clickhouse
+            - name: config-dir
+              mountPath: /etc/clickhouse-server/config.d
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8123
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8123
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [IPC_LOCK, SYS_NICE]
+      volumes:
+        - name: config
+          configMap:
+            name: clickhouse-config
+        - name: config-dir
+          emptyDir: {}
+        - name: init-scripts
+          configMap:
+            name: clickhouse-init-scripts
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: xyn-fast
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse-headless
+  namespace: xyn-infra
+  labels:
+    app: clickhouse
+spec:
+  selector:
+    app: clickhouse
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8123
+    - name: native
+      port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: xyn-infra
+  labels:
+    app: clickhouse
+spec:
+  selector:
+    app: clickhouse
+  ports:
+    - name: http
+      port: 8123
+      targetPort: 8123
+    - name: native
+      port: 9000
+      targetPort: 9000
+    - name: metrics
+      port: 9363
+      targetPort: 9363
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-config
+  namespace: xyn-infra
+data:
+  logging.xml: |
+    <clickhouse>
+      <logger>
+        <level>warning</level>
+        <console>true</console>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>100M</size>
+        <count>3</count>
+      </logger>
+    </clickhouse>
+  prometheus.xml: |
+    <clickhouse>
+      <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>9363</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+        <status_info>true</status_info>
+      </prometheus>
+    </clickhouse>

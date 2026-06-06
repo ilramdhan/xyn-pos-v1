@@ -1,0 +1,110 @@
+---
+# PostgreSQL backup CronJob — runs 3× per day (00:00, 08:00, 16:00)
+# Retention: 7 days local + 7 days Backblaze B2
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: xyn-infra
+  labels:
+    app: postgres-backup
+    component: operations
+spec:
+  schedule: "0 */8 * * *"
+  timeZone: "Asia/Jakarta"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app: postgres-backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            fsGroup: 999
+          containers:
+            - name: backup
+              image: ghcr.io/xyn-pos/backup-runner:latest
+              command: ["/scripts/backup.sh"]
+              env:
+                - name: PGHOST
+                  value: "pgbouncer.xyn-infra.svc.cluster.local"
+                - name: PGPORT
+                  value: "5432"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: migration-username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: migration-password
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /var/backups/xyn-pos
+                - name: rclone-config
+                  mountPath: /etc/rclone
+                  readOnly: true
+                - name: backup-scripts
+                  mountPath: /scripts
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                capabilities:
+                  drop: [ALL]
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: rclone-config
+              secret:
+                secretName: rclone-config
+                defaultMode: 0400
+            - name: backup-scripts
+              configMap:
+                name: backup-scripts
+                defaultMode: 0755
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: xyn-infra
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: xyn-fast
+  resources:
+    requests:
+      storage: 20Gi
+---
+# Stores the actual backup.sh script — source of truth is scripts/backup/backup.sh
+# In CI, this ConfigMap is generated from the script file via kustomize configMapGenerator
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: xyn-infra
+  annotations:
+    note: "Content managed by kustomize configMapGenerator from scripts/backup/backup.sh"
+data:
+  backup.sh: |
+    #!/usr/bin/env bash
+    echo "Backup script should be injected by kustomize configMapGenerator"
+    echo "Run: kubectl create configmap backup-scripts --from-file=scripts/backup/backup.sh -n xyn-infra"
+    exit 1
