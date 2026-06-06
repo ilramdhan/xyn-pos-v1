@@ -27,12 +27,23 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      # golangci-lint-action@v7 required for golangci-lint v2.x
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: v2.12.2
-          args: --timeout=5m
+      # golangci-lint must run per-module (not from workspace root with go.work)
+      # The action runs ./... from root which fails type-checking in a go.work workspace
+      - name: Install golangci-lint v2.12.2
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh \
+            | sh -s -- -b "$(go env GOPATH)/bin" v2.12.2
+
+      - name: Run golangci-lint per module
+        run: |
+          for mod in shared/go services/tenant services/pos services/payment services/inventory services/kitchen services/analytics; do
+            if [ -f "$mod/go.mod" ] && find "$mod" -name "*.go" | grep -q .; then
+              echo "--- golangci-lint: $mod ---"
+              (cd "$mod" && golangci-lint run --timeout=5m ./...)
+            else
+              echo "--- golangci-lint: $mod — no .go files yet, skipping ---"
+            fi
+          done
 
   test-unit:
     name: Unit Tests
