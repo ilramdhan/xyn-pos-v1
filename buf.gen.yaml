@@ -59,6 +59,8 @@ plugins:
 
   # ─────────────────────────────────────────────────
   # Dart — for Flutter mobile app
+  # NOTE: buf.build/grpc/dart is not published on BSR.
+  # Generate Dart locally: buf generate proto/ --template buf.gen.dart.yaml
+  # Using protoc-gen-dart + protoc-gen-grpc-dart installed via pub global
   # ─────────────────────────────────────────────────
-  - remote: buf.build/grpc/dart:v0.1.0
-    out: gen/dart
+  # (Dart generation is local-only; not run in CI)

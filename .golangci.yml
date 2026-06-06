@@ -36,69 +36,71 @@ linters:
     # Performance
     - prealloc          # Slice preallocation
 
-linters-settings:
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-      - name: error-return
-      - name: error-naming
-      - name: if-return
-      - name: var-naming
+  # v2: linters-settings moved under linters.settings
+  settings:
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+        - name: error-return
+        - name: error-naming
+        - name: if-return
+        - name: var-naming
 
-  gosec:
-    excludes:
-      - G115  # Integer overflow (too noisy in protobuf code)
+    gosec:
+      excludes:
+        - G115  # Integer overflow (too noisy in protobuf code)
 
-  goimports:
-    local-prefixes: github.com/xyn-pos
+    goimports:
+      local-prefixes: github.com/xyn-pos
 
-  depguard:
-    rules:
-      domain-layer:
-        files:
-          - "**/domain/**/*.go"
-        deny:
-          - pkg: "github.com/jackc/pgx"
-            desc: "Domain layer must not import pgx — use repository interface"
-          - pkg: "github.com/twmb/franz-go"
-            desc: "Domain layer must not import kafka — publish events via interface"
-          - pkg: "github.com/redis/go-redis"
-            desc: "Domain layer must not import redis"
-          - pkg: "google.golang.org/grpc"
-            desc: "Domain layer must not import grpc"
+    depguard:
+      rules:
+        domain-layer:
+          files:
+            - "**/domain/**/*.go"
+          deny:
+            - pkg: "github.com/jackc/pgx"
+              desc: "Domain layer must not import pgx — use repository interface"
+            - pkg: "github.com/twmb/franz-go"
+              desc: "Domain layer must not import kafka — publish events via interface"
+            - pkg: "github.com/redis/go-redis"
+              desc: "Domain layer must not import redis"
+            - pkg: "google.golang.org/grpc"
+              desc: "Domain layer must not import grpc"
 
-      application-layer:
-        files:
-          - "**/application/**/*.go"
-        deny:
-          - pkg: "github.com/jackc/pgx"
-            desc: "Application layer must not import pgx — use repository interface"
-          - pkg: "google.golang.org/grpc"
-            desc: "Application layer must not import grpc"
+        application-layer:
+          files:
+            - "**/application/**/*.go"
+          deny:
+            - pkg: "github.com/jackc/pgx"
+              desc: "Application layer must not import pgx — use repository interface"
+            - pkg: "google.golang.org/grpc"
+              desc: "Application layer must not import grpc"
 
 issues:
-  exclude-rules:
-    # Allow magic numbers in migrations
-    - path: "migrations/"
-      linters: [gomnd, revive]
+  # v2: exclude-rules moved under issues.exclusions.rules
+  exclusions:
+    rules:
+      # Allow magic numbers in migrations
+      - path: "migrations/"
+        linters: [gomnd, revive]
 
-    # Allow fmt.Println in cmd/
-    - path: "cmd/"
-      linters: [forbidigo]
+      # Allow fmt.Println in cmd/
+      - path: "cmd/"
+        linters: [forbidigo]
 
-    # Generated code
-    - path: "gen/"
-      linters:
-        - revive
-        - errcheck
-        - govet
+      # Generated code
+      - path: "gen/"
+        linters:
+          - revive
+          - errcheck
+          - govet
 
   max-issues-per-linter: 50
   max-same-issues: 5
 
 output:
-  # golangci-lint v2: formats is a map, not a list
+  # v2: formats is a list of objects (not a map)
   formats:
-    colored-line-number: {}
-  sort-results: true
+    - format: colored-line-number
