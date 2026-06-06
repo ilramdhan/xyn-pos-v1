@@ -1,5 +1,13 @@
 {
-  "_comment": "Debezium PostgreSQL CDC connector config — POST to http://debezium:8083/connectors",
+  "_comment": [
+    "Debezium PostgreSQL CDC connector config.",
+    "Register via: POST http://debezium:8083/connectors",
+    "The debezium-init service in docker-compose.analytics.yml does this automatically.",
+    "",
+    "Password handling:",
+    "  Local dev (docker-compose): uses literal 'xyn_migration_password' — matches .env.example",
+    "  K8s: replace password value with ${file:/kafka/secrets/...} or use ExternalSecret operator"
+  ],
   "name": "xyn-postgres-connector",
   "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
@@ -8,7 +16,7 @@
     "database.hostname": "postgres",
     "database.port": "5432",
     "database.user": "migration_user",
-    "database.password": "${file:/kafka/secrets/postgres-credentials.properties:password}",
+    "database.password": "xyn_migration_password",
     "database.dbname": "xyn_pos",
     "database.server.name": "xyn",
 

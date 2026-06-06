@@ -1,0 +1,34 @@
+<!-- ClickHouse 26.5 — Server config overrides (local dev)
+     Only set values that differ from defaults. Full reference:
+     https://clickhouse.com/docs/operations/server-configuration-parameters/settings -->
+<clickhouse>
+    <!-- Allow connections from Docker network -->
+    <listen_host>0.0.0.0</listen_host>
+
+    <!-- HTTP port used by Grafana and REST clients -->
+    <http_port>8123</http_port>
+
+    <!-- Native TCP port used by Go analytics service (clickhouse-go driver) -->
+    <tcp_port>9000</tcp_port>
+
+    <!-- Prometheus metrics endpoint -->
+    <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>9363</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+    </prometheus>
+
+    <!-- Limit memory in dev to avoid OOM on shared Docker host -->
+    <max_server_memory_usage_to_ram_ratio>0.5</max_server_memory_usage_to_ram_ratio>
+
+    <logger>
+        <level>warning</level>
+        <console>true</console>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>50M</size>
+        <count>2</count>
+    </logger>
+</clickhouse>

@@ -1,0 +1,37 @@
+<!-- ClickHouse 26.5 — User configuration for local dev
+     In production: use Kubernetes Secret + ClickHouse operator or env vars -->
+<clickhouse>
+    <users>
+        <!-- Remove default user's empty password in production -->
+        <default>
+            <password></password>
+            <networks>
+                <ip>::1</ip>
+                <ip>127.0.0.1</ip>
+                <ip>172.16.0.0/12</ip>   <!-- Docker internal network -->
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <access_management>0</access_management>
+        </default>
+
+        <!-- Analytics user — used by Go analytics service and Grafana -->
+        <xyn_analytics>
+            <password_sha256_hex from_env="CLICKHOUSE_PASSWORD_SHA256"></password_sha256_hex>
+            <!-- Fallback plaintext for local dev only (docker-compose) -->
+            <password from_env="CLICKHOUSE_PASSWORD"></password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <databases>
+                <xyn_analytics>
+                    <grants>
+                        <query>GRANT ALL ON xyn_analytics.* TO xyn_analytics</query>
+                    </grants>
+                </xyn_analytics>
+            </databases>
+        </xyn_analytics>
+    </users>
+</clickhouse>

@@ -1,14 +1,16 @@
 # xyn-pos-v1 — Makefile
 # Run `make help` to see all available targets
 
-.PHONY: help dev-up dev-down dev-logs dev-ps \
-        proto-lint proto-gen proto-breaking \
+.PHONY: help \
+        dev-up dev-down dev-logs dev-ps dev-restart \
+        analytics-up analytics-down analytics-logs \
+        proto-lint proto-gen proto-breaking proto-format \
         lint lint-fix \
-        test test-unit test-integration test-coverage \
+        test test-unit test-integration test-coverage test-service \
         build build-all \
-        migrate-up migrate-down migrate-status \
+        migrate-up migrate-down migrate-status migrate-create \
         k6-smoke k6-load k6-spike \
-        clean
+        clean tidy gen-mocks seed-dev check-versions
 
 # ─────────────────────────────────────────────────────────
 # Help
@@ -22,23 +24,40 @@ help: ## Show this help
 # Docker Compose — Local dev stack
 # ─────────────────────────────────────────────────────────
 
-dev-up: ## Start all local services (Postgres, Redis, Kafka, MinIO, Keycloak, Observability)
+dev-up: ## Start base local services (Postgres, Redis, Kafka, MinIO, Keycloak, OTEL, Grafana)
 	docker compose up -d
-	@echo "\n✅ Stack running:"
-	@echo "  PostgreSQL:   localhost:5432 (app_user / xyn_app_password)"
-	@echo "  PgBouncer:    localhost:6432"
-	@echo "  Redis:        localhost:6379"
-	@echo "  Kafka:        localhost:9094 (external)"
-	@echo "  Kafka UI:     http://localhost:8090"
-	@echo "  MinIO:        http://localhost:9001 (console)"
-	@echo "  Keycloak:     http://localhost:8080 (admin/xyn_keycloak_password)"
-	@echo "  API Gateway:  http://localhost:8000"
-	@echo "  Jaeger UI:    http://localhost:16686"
-	@echo "  Prometheus:   http://localhost:9090"
-	@echo "  Grafana:      http://localhost:3001 (admin/xyn_grafana_password)"
+	@echo "\n✅ Base stack running:"
+	@echo "  PostgreSQL:      localhost:5432  (app_user / xyn_app_password)"
+	@echo "  PgBouncer:       localhost:6432  (connection pooler)"
+	@echo "  Redis:           localhost:6379"
+	@echo "  Kafka:           localhost:9094  (external)"
+	@echo "  Kafka UI:        http://localhost:8090"
+	@echo "  MinIO:           http://localhost:9001  (console)"
+	@echo "  Keycloak:        http://localhost:8080  (admin/xyn_keycloak_password)"
+	@echo "  API Gateway:     http://localhost:8000"
+	@echo "  OTEL Collector:  localhost:4317  (OTLP gRPC — send traces here)"
+	@echo "  Jaeger UI:       http://localhost:16686"
+	@echo "  Prometheus:      http://localhost:9090"
+	@echo "  Grafana:         http://localhost:3001  (admin/xyn_grafana_password)"
+	@echo "\n  Run 'make analytics-up' to also start ClickHouse + Debezium CDC."
 
-dev-down: ## Stop and remove all containers + volumes
-	docker compose down -v
+analytics-up: ## Start analytics stack on top of base (ClickHouse + Debezium CDC)
+	docker compose -f docker-compose.yml -f docker-compose.analytics.yml up -d
+	@echo "\n✅ Analytics stack running (on top of base):"
+	@echo "  ClickHouse HTTP: http://localhost:8123"
+	@echo "  ClickHouse TCP:  localhost:9000"
+	@echo "  Debezium:        http://localhost:8083  (Kafka Connect REST API)"
+	@echo "\n  Debezium will auto-register the PostgreSQL CDC connector."
+	@echo "  Check connector status: curl http://localhost:8083/connectors/xyn-postgres-connector/status"
+
+analytics-down: ## Stop analytics stack only (keeps base stack running)
+	docker compose -f docker-compose.yml -f docker-compose.analytics.yml stop clickhouse debezium debezium-init kafka-init
+
+analytics-logs: ## Tail analytics stack logs
+	docker compose -f docker-compose.yml -f docker-compose.analytics.yml logs -f clickhouse debezium otel-collector
+
+dev-down: ## Stop and remove all containers + volumes (base + analytics)
+	docker compose -f docker-compose.yml -f docker-compose.analytics.yml down -v 2>/dev/null || docker compose down -v
 
 dev-logs: ## Tail all container logs
 	docker compose logs -f
