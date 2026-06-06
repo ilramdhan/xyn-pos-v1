@@ -8,7 +8,7 @@ modules:
 
 lint:
   use:
-    - DEFAULT
+    - STANDARD
   except:
     - PACKAGE_VERSION_SUFFIX   # We use pos/v1, not posv1
   ignore_only:

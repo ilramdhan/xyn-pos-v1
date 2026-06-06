@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package common.v1;
 
-import "google/protobuf/any.proto";
-
 option go_package = "github.com/xyn-pos/gen/common/v1;commonv1";
 
 // FieldViolation — validation error on a specific field

@@ -44,7 +44,7 @@ plugins:
   # ─────────────────────────────────────────────────
   # TypeScript — Connect-RPC (for Next.js 16 frontend)
   # ─────────────────────────────────────────────────
-  - remote: buf.build/connectrpc/es:v2.0.0
+  - remote: buf.build/connectrpc/es:v1.6.1
     out: gen/ts
     opt:
       - target=ts
