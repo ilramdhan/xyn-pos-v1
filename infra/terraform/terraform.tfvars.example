@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and fill in real values.
+# NEVER commit terraform.tfvars to git — contains secrets.
+
+hcloud_token         = "your_hetzner_cloud_api_token"
+cloudflare_api_token = "your_cloudflare_api_token"
+cloudflare_zone_id   = "your_cloudflare_zone_id"
+
+domain              = "xyn-pos.dev"
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+location            = "hel1"   # Helsinki
+
+# Dev+staging: cx32 (8 vCPU, 16 GB, ~€18/mo)
+server_type_dev_staging = "cx32"
+
+# Production: ccx23 (4 dedicated vCPU, 16 GB, ~€59/mo)
+server_type_prod = "ccx23"
