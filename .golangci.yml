@@ -94,7 +94,8 @@ formatters:
     - goimports
   settings:
     goimports:
-      local-prefixes: github.com/xyn-pos
+      local-prefixes:
+        - github.com/xyn-pos
 
 issues:
   max-issues-per-linter: 50
