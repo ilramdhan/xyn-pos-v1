@@ -21,6 +21,9 @@ jobs:
         uses: bufbuild/buf-action@v1
         with:
           version: "1.70.0"
+          # push: false — BSR push disabled until BUF_TOKEN secret is configured.
+          # To enable: add BUF_TOKEN as a GitHub secret, then set push: true here.
+          push: false
 
       - name: Lint protos
         run: buf lint proto/
@@ -39,6 +42,7 @@ jobs:
         uses: bufbuild/buf-action@v1
         with:
           version: "1.70.0"
+          push: false
 
       - name: Check for breaking changes
         run: buf breaking proto/ --against '.git#branch=main,subdir=proto'
@@ -59,6 +63,7 @@ jobs:
         uses: bufbuild/buf-action@v1
         with:
           version: "1.70.0"
+          push: false
 
       - name: Generate code
         run: buf generate proto/
@@ -69,3 +74,17 @@ jobs:
             echo "Generated code is out of sync. Run 'make proto-gen' and commit the result."
             exit 1
           fi
+
+  # Uncomment + add BUF_TOKEN secret to enable BSR publishing
+  # publish:
+  #   name: Publish to BSR
+  #   runs-on: ubuntu-latest
+  #   needs: [lint, generate]
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: bufbuild/buf-action@v1
+  #       with:
+  #         version: "1.70.0"
+  #         token: ${{ secrets.BUF_TOKEN }}
+  #         push: true

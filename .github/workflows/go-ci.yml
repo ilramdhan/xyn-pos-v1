@@ -27,8 +27,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      # golangci-lint-action@v7 required for golangci-lint v2.x
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
           args: --timeout=5m
@@ -46,9 +47,17 @@ jobs:
           cache: true
 
       - name: Run unit tests
-        run: go test -v -race -count=1 -coverprofile=coverage.out ./services/.../internal/domain/...
+        # find all domain packages; skip gracefully if none exist yet
+        run: |
+          PKGS=$(go list ./services/.../internal/domain/... 2>/dev/null || true)
+          if [ -z "$PKGS" ]; then
+            echo "No domain packages found yet — skipping (expected during scaffolding phase)"
+            exit 0
+          fi
+          go test -v -race -count=1 -coverprofile=coverage.out $PKGS
 
       - name: Upload coverage
+        if: hashFiles('coverage.out') != ''
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.out
@@ -82,7 +91,14 @@ jobs:
       - name: Run integration tests
         env:
           TEST_DATABASE_URL: postgres://test_user:test_password@localhost:5432/test_db?sslmode=disable
-        run: go test -v -race -count=1 -tags=integration -timeout=120s ./services/.../internal/infrastructure/...
+        # find infrastructure packages; skip gracefully if none exist yet
+        run: |
+          PKGS=$(go list -tags=integration ./services/.../internal/infrastructure/... 2>/dev/null || true)
+          if [ -z "$PKGS" ]; then
+            echo "No infrastructure packages found yet — skipping (expected during scaffolding phase)"
+            exit 0
+          fi
+          go test -v -race -count=1 -tags=integration -timeout=120s $PKGS
 
   build:
     name: Build All Services
@@ -106,10 +122,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run gosec
-        uses: securego/gosec@v2.22.4
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          args: ./...
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+          PKGS=$(go list ./... 2>/dev/null | grep -v '/gen/' || true)
+          if [ -z "$PKGS" ]; then
+            echo "No packages found yet — skipping gosec"
+            exit 0
+          fi
+          gosec $PKGS
 
       - name: Run govulncheck
         uses: golang/govulncheck-action@v1
