@@ -21,15 +21,13 @@ jobs:
         uses: bufbuild/buf-action@v1
         with:
           version: "1.70.0"
-          # push: false — BSR push disabled until BUF_TOKEN secret is configured.
-          # To enable: add BUF_TOKEN as a GitHub secret, then set push: true here.
-          push: false
+          setup_only: true
 
       - name: Lint protos
         run: buf lint proto/
 
       - name: Check formatting
-        run: buf format --diff proto/
+        run: buf format --diff --exit-code proto/
 
   breaking:
     name: Breaking Change Detection
@@ -42,7 +40,7 @@ jobs:
         uses: bufbuild/buf-action@v1
         with:
           version: "1.70.0"
-          push: false
+          setup_only: true
 
       - name: Check for breaking changes
         run: buf breaking proto/ --against '.git#branch=main,subdir=proto'
@@ -63,7 +61,7 @@ jobs:
         uses: bufbuild/buf-action@v1
         with:
           version: "1.70.0"
-          push: false
+          setup_only: true
 
       - name: Generate code
         run: buf generate proto/
