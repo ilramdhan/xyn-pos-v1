@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 	"github.com/xyn-pos/shared/pkg/middleware"
 )
 
@@ -15,11 +14,7 @@ func TestClaimsFromContext_Missing_ReturnsFalse(t *testing.T) {
 }
 
 func TestClaimsFromContext_Present_ReturnsClaims(t *testing.T) {
-	// We can't easily test the interceptor without a real gRPC server,
-	// but we can test the context helpers directly.
-	// ClaimsFromContext uses an unexported key — we verify it returns false on empty ctx.
-	claims := &sharedauth.Claims{Role: "admin"}
-	_ = claims // ensure Claims struct is accessible
+	// ClaimsFromContext returns false on an empty context (no injected claims).
 	_, ok := middleware.ClaimsFromContext(context.Background())
 	assert.False(t, ok)
 }
