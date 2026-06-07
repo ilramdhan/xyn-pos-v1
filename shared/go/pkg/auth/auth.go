@@ -97,7 +97,7 @@ func NewLocalVerifier(keyHex string) (VerifyFunc, error) {
 
 		var branchScope []uuid.UUID
 		if scopeStr, _ := tok.GetString("branch_scope"); scopeStr != "" {
-			for _, s := range strings.Split(scopeStr, ",") {
+			for s := range strings.SplitSeq(scopeStr, ",") {
 				if id, err := uuid.Parse(s); err == nil {
 					branchScope = append(branchScope, id)
 				}

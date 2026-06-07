@@ -36,9 +36,30 @@ CREATE POLICY users_update ON users FOR UPDATE
 CREATE POLICY users_delete ON users FOR DELETE
     USING (tenant_id = current_setting('app.current_tenant_id', true)::UUID);
 
-CREATE POLICY user_pins_select ON user_pins FOR SELECT USING (true);
-CREATE POLICY user_pins_insert ON user_pins FOR INSERT WITH CHECK (true);
-CREATE POLICY user_pins_update ON user_pins FOR UPDATE USING (true);
+CREATE POLICY user_pins_select ON user_pins FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = user_pins.user_id
+          AND u.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+CREATE POLICY user_pins_insert ON user_pins FOR INSERT
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = user_pins.user_id
+          AND u.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+CREATE POLICY user_pins_update ON user_pins FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = user_pins.user_id
+          AND u.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
+CREATE POLICY user_pins_delete ON user_pins FOR DELETE
+    USING (EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = user_pins.user_id
+          AND u.tenant_id = current_setting('app.current_tenant_id', true)::UUID
+    ));
 -- +goose StatementEnd
 
 -- +goose Down

@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -93,12 +94,7 @@ func (u *User) CanAccessBranch(branchID uuid.UUID) bool {
 	if len(u.BranchScope) == 0 {
 		return true
 	}
-	for _, id := range u.BranchScope {
-		if id == branchID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(u.BranchScope, branchID)
 }
 
 // PopEvents returns accumulated domain events and clears the internal slice.
