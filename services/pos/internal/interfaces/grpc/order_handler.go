@@ -79,7 +79,14 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *posv1.CreateOrderRe
 		}
 		shiftID = &id
 	}
-	cashierID, _ := uuid.Parse(req.CashierId)
+	// CashierID comes from verified JWT claims, not the request body, to prevent spoofing.
+	// In dev mode (no auth middleware), fall back to req.CashierId.
+	cashierID := uuid.Nil
+	if claims, ok := claimsFromContext(ctx); ok {
+		cashierID = claims.UserID
+	} else if req.CashierId != "" {
+		cashierID, _ = uuid.Parse(req.CashierId)
+	}
 	o, err := h.createOrderH.Handle(ctx, command.CreateOrderInput{
 		TenantID:       tenantID,
 		BranchID:       branchID,
