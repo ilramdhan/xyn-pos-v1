@@ -6,6 +6,7 @@ go 1.26
 // Docs: https://go.dev/ref/mod#go-work-file
 
 use (
+    ./gen
     ./shared/go
     ./services/tenant
     ./services/pos
