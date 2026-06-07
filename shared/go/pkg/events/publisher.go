@@ -12,11 +12,11 @@ import (
 
 // Envelope wraps every domain event for Kafka.
 type Envelope struct {
-	EventID   string          `json:"event_id"`
-	EventType string          `json:"event_type"`
-	TenantID  string          `json:"tenant_id"`
+	EventID    string          `json:"event_id"`
+	EventType  string          `json:"event_type"`
+	TenantID   string          `json:"tenant_id"`
 	OccurredAt time.Time       `json:"occurred_at"`
-	Payload   json.RawMessage `json:"payload"`
+	Payload    json.RawMessage `json:"payload"`
 }
 
 // Publisher defines the interface for publishing domain events.
@@ -46,11 +46,11 @@ func NewKafkaPublisher(brokers []string) (*KafkaPublisher, error) {
 // Publish encodes a domain event into an Envelope and produces it to Kafka.
 func (p *KafkaPublisher) Publish(ctx context.Context, topic string, tenantID uuid.UUID, eventType string, payload []byte) error {
 	env := Envelope{
-		EventID:   uuid.NewString(),
-		EventType: eventType,
-		TenantID:  tenantID.String(),
+		EventID:    uuid.NewString(),
+		EventType:  eventType,
+		TenantID:   tenantID.String(),
 		OccurredAt: time.Now().UTC(),
-		Payload:   json.RawMessage(payload),
+		Payload:    json.RawMessage(payload),
 	}
 
 	data, err := json.Marshal(env)
@@ -77,7 +77,10 @@ func (p *KafkaPublisher) Close() { p.client.Close() }
 // NoopPublisher is a no-op publisher for testing and Phase 3 (Kafka not wired yet).
 type NoopPublisher struct{}
 
+// Publish is a no-op implementation; always returns nil.
 func (n *NoopPublisher) Publish(_ context.Context, _ string, _ uuid.UUID, _ string, _ []byte) error {
 	return nil
 }
+
+// Close is a no-op implementation.
 func (n *NoopPublisher) Close() {}

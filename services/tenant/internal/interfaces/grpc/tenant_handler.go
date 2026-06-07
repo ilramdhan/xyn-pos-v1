@@ -8,11 +8,11 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	sharederrors "github.com/xyn-pos/shared/pkg/errors"
-	sharedtelemetry "github.com/xyn-pos/shared/pkg/telemetry"
 	"github.com/xyn-pos/services/tenant/internal/application/command"
 	"github.com/xyn-pos/services/tenant/internal/application/query"
 	domain "github.com/xyn-pos/services/tenant/internal/domain/tenant"
+	sharederrors "github.com/xyn-pos/shared/pkg/errors"
+	sharedtelemetry "github.com/xyn-pos/shared/pkg/telemetry"
 )
 
 var tracer trace.Tracer

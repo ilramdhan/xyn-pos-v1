@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	shareddb "github.com/xyn-pos/shared/pkg/database"
 )
 

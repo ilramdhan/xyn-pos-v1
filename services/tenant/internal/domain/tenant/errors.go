@@ -2,6 +2,7 @@ package tenant
 
 import "errors"
 
+// Sentinel errors for the tenant domain.
 var (
 	ErrTenantNotFound     = errors.New("tenant not found")
 	ErrSlugAlreadyTaken   = errors.New("slug already taken")

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+
 	domain "github.com/xyn-pos/services/tenant/internal/domain/tenant"
 )
 

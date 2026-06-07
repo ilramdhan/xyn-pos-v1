@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
 	sharedevents "github.com/xyn-pos/shared/pkg/events"
 )
 

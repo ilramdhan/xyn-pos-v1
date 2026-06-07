@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	shareddb "github.com/xyn-pos/shared/pkg/database"
-	sharedtelemetry "github.com/xyn-pos/shared/pkg/telemetry"
 	"github.com/xyn-pos/services/tenant/internal/application/command"
 	"github.com/xyn-pos/services/tenant/internal/application/query"
 	"github.com/xyn-pos/services/tenant/internal/infrastructure/postgres"
 	grpchandler "github.com/xyn-pos/services/tenant/internal/interfaces/grpc"
+	shareddb "github.com/xyn-pos/shared/pkg/database"
+	sharedtelemetry "github.com/xyn-pos/shared/pkg/telemetry"
 )
 
 // App is the assembled tenant service: gRPC server + shutdown lifecycle.
@@ -19,7 +19,7 @@ type App struct {
 }
 
 // New builds the full dependency graph bottom-up:
-// telemetry → database → repository → application → interface
+// telemetry → database → repository → application → interface.
 func New(ctx context.Context, cfg *Config) (*App, error) {
 	// 1. Telemetry (first: spans on everything below)
 	shutdownTelemetry, err := sharedtelemetry.Setup(ctx, sharedtelemetry.Config{

@@ -12,6 +12,7 @@ import (
 // PlanTier defines subscription plan levels.
 type PlanTier string
 
+// Subscription plan tier values.
 const (
 	PlanTierFree       PlanTier = "free"
 	PlanTierGrowth     PlanTier = "growth"
@@ -36,13 +37,14 @@ func PlanFromTier(tier PlanTier) Plan {
 	}
 }
 
-// TenantStatus represents the lifecycle state of a tenant.
-type TenantStatus string
+// Status represents the lifecycle state of a tenant.
+type Status string
 
+// Tenant lifecycle status values.
 const (
-	StatusActive    TenantStatus = "active"
-	StatusSuspended TenantStatus = "suspended"
-	StatusDeleted   TenantStatus = "deleted"
+	StatusActive    Status = "active"
+	StatusSuspended Status = "suspended"
+	StatusDeleted   Status = "deleted"
 )
 
 // Address is a value object for physical locations.
@@ -89,7 +91,7 @@ type Tenant struct {
 	Name      string
 	Slug      string
 	Plan      Plan
-	Status    TenantStatus
+	Status    Status
 	Branches  []Branch
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -117,7 +119,7 @@ func NewTenant(name, slug string, tier PlanTier) (*Tenant, error) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	t.events = append(t.events, TenantCreatedEvent{
+	t.events = append(t.events, CreatedEvent{
 		TenantID:  t.ID,
 		Name:      t.Name,
 		Slug:      t.Slug,

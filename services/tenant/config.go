@@ -8,9 +8,9 @@ import (
 
 // Config holds all environment-driven configuration for the tenant service.
 type Config struct {
-	ServiceName  string
-	Version      string
-	Env          string
+	ServiceName string
+	Version     string
+	Env         string
 
 	DatabaseURL  string
 	GRPCPort     int

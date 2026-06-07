@@ -35,7 +35,7 @@ func Setup(ctx context.Context, cfg Config) (shutdown func(), err error) {
 
 	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("telemetry.Setup exporter: %w", err)
 	}
 
@@ -47,7 +47,7 @@ func Setup(ctx context.Context, cfg Config) (shutdown func(), err error) {
 		),
 	)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("telemetry.Setup resource: %w", err)
 	}
 

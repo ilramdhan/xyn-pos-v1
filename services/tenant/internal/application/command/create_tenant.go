@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	domain "github.com/xyn-pos/services/tenant/internal/domain/tenant"
 )
 

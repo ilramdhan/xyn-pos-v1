@@ -12,8 +12,8 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
-	shareddb "github.com/xyn-pos/shared/pkg/database"
 	domain "github.com/xyn-pos/services/tenant/internal/domain/tenant"
+	shareddb "github.com/xyn-pos/shared/pkg/database"
 )
 
 // TenantRepository implements domain.Repository using PostgreSQL via pgxpool.
@@ -83,7 +83,7 @@ func (r *TenantRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 		return nil, fmt.Errorf("TenantRepository.FindByID id=%s: %w", id, err)
 	}
 	t.Plan = domain.PlanFromTier(domain.PlanTier(planTier))
-	t.Status = domain.TenantStatus(status)
+	t.Status = domain.Status(status)
 
 	branches, err := r.ListBranches(ctx, id)
 	if err != nil {

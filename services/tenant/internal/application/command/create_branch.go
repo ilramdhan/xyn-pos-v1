@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	domain "github.com/xyn-pos/services/tenant/internal/domain/tenant"
 )
 
+// CreateBranchCommand carries the input for adding a branch to a tenant.
 type CreateBranchCommand struct {
 	IdempotencyKey string
 	TenantID       uuid.UUID
@@ -16,14 +18,17 @@ type CreateBranchCommand struct {
 	Timezone       string
 }
 
+// CreateBranchHandler handles the CreateBranch command.
 type CreateBranchHandler struct {
 	repo domain.Repository
 }
 
+// NewCreateBranchHandler constructs a CreateBranchHandler.
 func NewCreateBranchHandler(repo domain.Repository) *CreateBranchHandler {
 	return &CreateBranchHandler{repo: repo}
 }
 
+// Handle executes the CreateBranch command, enforcing plan branch limits.
 func (h *CreateBranchHandler) Handle(ctx context.Context, cmd CreateBranchCommand) (*domain.Branch, error) {
 	t, err := h.repo.FindByID(ctx, cmd.TenantID)
 	if err != nil {

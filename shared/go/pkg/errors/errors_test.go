@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	sharederrors "github.com/xyn-pos/shared/pkg/errors"
 	"google.golang.org/grpc/codes"
+
+	sharederrors "github.com/xyn-pos/shared/pkg/errors"
 )
 
 func TestMapToGRPCStatus_NilError(t *testing.T) {

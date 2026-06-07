@@ -11,8 +11,8 @@ type DomainEvent interface {
 	EventType() string
 }
 
-// TenantCreatedEvent is fired when a new tenant is registered.
-type TenantCreatedEvent struct {
+// CreatedEvent is fired when a new tenant is registered.
+type CreatedEvent struct {
 	TenantID  uuid.UUID
 	Name      string
 	Slug      string
@@ -20,7 +20,8 @@ type TenantCreatedEvent struct {
 	CreatedAt time.Time
 }
 
-func (e TenantCreatedEvent) EventType() string { return "tenant.created" }
+// EventType returns the event type identifier.
+func (e CreatedEvent) EventType() string { return "tenant.created" }
 
 // BranchAddedEvent is fired when a branch is added to a tenant.
 type BranchAddedEvent struct {
@@ -30,4 +31,5 @@ type BranchAddedEvent struct {
 	CreatedAt time.Time
 }
 
+// EventType returns the event type identifier.
 func (e BranchAddedEvent) EventType() string { return "tenant.branch_added" }

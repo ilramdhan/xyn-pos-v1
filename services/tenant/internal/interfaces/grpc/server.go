@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net"
 
+	"google.golang.org/grpc"
+
 	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 	"github.com/xyn-pos/shared/pkg/middleware"
-	"google.golang.org/grpc"
 )
 
 // Server wraps the gRPC server with lifecycle management.

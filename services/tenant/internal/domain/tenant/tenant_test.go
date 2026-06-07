@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	domain "github.com/xyn-pos/services/tenant/internal/domain/tenant"
 )
 
