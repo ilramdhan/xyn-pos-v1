@@ -12,4 +12,5 @@ var (
 	ErrInvalidName            = errors.New("product name cannot be empty")
 	ErrInvalidAddonGroup      = errors.New("addon group max_selections must be >= 1")
 	ErrProductAlreadyArchived = errors.New("product is already archived")
+	ErrInvalidTaxType         = errors.New("invalid tax type: must be ppn, pb1, or none")
 )

@@ -16,6 +16,15 @@ const (
 	TaxTypeNone TaxType = "none"
 )
 
+// IsValid reports whether t is a recognised TaxType value.
+func (t TaxType) IsValid() bool {
+	switch t {
+	case TaxTypePPN, TaxTypePB1, TaxTypeNone:
+		return true
+	}
+	return false
+}
+
 // Category groups products for display. Tenant-global — all branches see the same catalog.
 type Category struct {
 	ID        uuid.UUID
@@ -99,6 +108,9 @@ func NewProduct(tenantID uuid.UUID, categoryID *uuid.UUID, sku, name, descriptio
 	}
 	if basePrice < 0 {
 		return nil, ErrInvalidPrice
+	}
+	if !taxType.IsValid() {
+		return nil, ErrInvalidTaxType
 	}
 
 	now := time.Now().UTC()
