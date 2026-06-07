@@ -15,7 +15,7 @@ type Envelope struct {
 	EventID   string          `json:"event_id"`
 	EventType string          `json:"event_type"`
 	TenantID  string          `json:"tenant_id"`
-	OccuredAt time.Time       `json:"occurred_at"`
+	OccurredAt time.Time       `json:"occurred_at"`
 	Payload   json.RawMessage `json:"payload"`
 }
 
@@ -49,7 +49,7 @@ func (p *KafkaPublisher) Publish(ctx context.Context, topic string, tenantID uui
 		EventID:   uuid.NewString(),
 		EventType: eventType,
 		TenantID:  tenantID.String(),
-		OccuredAt: time.Now().UTC(),
+		OccurredAt: time.Now().UTC(),
 		Payload:   json.RawMessage(payload),
 	}
 
