@@ -14,7 +14,7 @@ enum TaxType {
   TAX_TYPE_NONE        = 3;
 }
 
-// Category groups products for display and filtering.
+// Category groups products for display and filtering. Categories are tenant-global; all branches see the same catalog.
 message Category {
   string id         = 1;
   string tenant_id  = 2;
@@ -22,6 +22,8 @@ message Category {
   int32  sort_order = 4;
   string parent_id  = 5; // empty = top-level
   bool   is_active  = 6;
+  string created_at = 7;
+  string updated_at = 8;
 }
 
 // Variant is a product option (e.g. "Porsi Kecil") with a price delta.
@@ -101,12 +103,13 @@ message CreateProductRequest {
 message CreateProductResponse { Product product = 1; }
 
 message UpdateProductRequest {
-  string product_id   = 1;
-  string name         = 2;
-  string description  = 3;
-  int64  base_price   = 4;
-  TaxType tax_type    = 5;
-  string category_id  = 6;
+  string idempotency_key = 1;
+  string product_id   = 2;
+  string name         = 3;
+  string description  = 4;
+  int64  base_price   = 5;
+  TaxType tax_type    = 6;
+  string category_id  = 7;
 }
 message UpdateProductResponse { Product product = 1; }
 
@@ -114,10 +117,11 @@ message ArchiveProductRequest { string product_id = 1; }
 message ArchiveProductResponse {}
 
 message SetBranchPriceRequest {
-  string branch_id     = 1;
-  string product_id    = 2;
-  int64  override_price = 3; // 0 = remove override
-  bool   is_available  = 4;
+  string idempotency_key = 1;
+  string branch_id      = 2;
+  string product_id     = 3;
+  int64  override_price = 4; // 0 = remove override
+  bool   is_available   = 5;
 }
 message SetBranchPriceResponse {}
 
