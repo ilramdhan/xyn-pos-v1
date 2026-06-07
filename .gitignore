@@ -37,7 +37,6 @@ bin/
 *.out
 coverage.out
 coverage.html
-go.work.sum
 
 # ─────────────────────────────────────────────────────────
 # Generated code — regenerate with `make proto-gen`
