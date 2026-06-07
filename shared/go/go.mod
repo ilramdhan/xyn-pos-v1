@@ -5,7 +5,7 @@ go 1.26
 require (
 	aidanwoods.dev/go-paseto v1.5.3
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/redis/go-redis/v9 v9.20.0
 	github.com/samber/oops v1.17.0
 	github.com/samber/slog-zap/v2 v2.7.0

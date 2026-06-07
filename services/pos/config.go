@@ -33,6 +33,10 @@ func LoadConfig() (*Config, error) {
 	}
 	cfg.DatabaseURL = dbURL
 
+	if cfg.PASETOKeyHex == "" && cfg.Env != "dev" {
+		return nil, fmt.Errorf("config: PASETO_KEY_HEX is required in non-dev environments")
+	}
+
 	portStr := getEnv("GRPC_PORT", "50052")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {

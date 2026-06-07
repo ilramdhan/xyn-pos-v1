@@ -12,6 +12,8 @@ import (
 	"github.com/xyn-pos/services/pos/internal/application/command"
 	"github.com/xyn-pos/services/pos/internal/application/query"
 	"github.com/xyn-pos/services/pos/internal/domain/product"
+	sharedauth "github.com/xyn-pos/shared/pkg/auth"
+	"github.com/xyn-pos/shared/pkg/middleware"
 )
 
 // ProductHandler implements posv1.ProductServiceServer.
@@ -53,10 +55,32 @@ func NewProductHandler(
 	}
 }
 
-func (h *ProductHandler) CreateProduct(ctx context.Context, req *posv1.CreateProductRequest) (*posv1.CreateProductResponse, error) {
-	tenantID, err := uuid.Parse(req.TenantId)
+// claimsFromContext extracts verified JWT claims stored by the auth middleware.
+// In dev mode (no auth middleware installed), claims are absent; the caller
+// receives a nil *sharedauth.Claims and ok=false.
+func claimsFromContext(ctx context.Context) (*sharedauth.Claims, bool) {
+	return middleware.ClaimsFromContext(ctx)
+}
+
+// tenantIDFromContext returns the tenant UUID from JWT claims when available,
+// falling back to the raw string from the request in dev mode (claims absent).
+// Returns an error if neither source yields a valid UUID.
+func tenantIDFromContext(ctx context.Context, fallbackRaw string) (uuid.UUID, error) {
+	if claims, ok := claimsFromContext(ctx); ok {
+		return claims.TenantID, nil
+	}
+	// Dev mode: auth middleware not installed, no claims in context.
+	id, err := uuid.Parse(fallbackRaw)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+		return uuid.Nil, errors.New("invalid tenant_id")
+	}
+	return id, nil
+}
+
+func (h *ProductHandler) CreateProduct(ctx context.Context, req *posv1.CreateProductRequest) (*posv1.CreateProductResponse, error) {
+	tenantID, err := tenantIDFromContext(ctx, req.TenantId)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
 	}
 	p, err := h.createProductH.Handle(ctx, command.CreateProductInput{
 		TenantID:       tenantID,
@@ -73,6 +97,9 @@ func (h *ProductHandler) CreateProduct(ctx context.Context, req *posv1.CreatePro
 	return &posv1.CreateProductResponse{Product: domainProductToProto(p)}, nil
 }
 
+// UpdateProduct mutates a product by ID. Cross-tenant access is blocked at the
+// database layer via PostgreSQL RLS (app.current_tenant_id session variable set
+// before every query). No handler-level tenant check is needed here.
 func (h *ProductHandler) UpdateProduct(ctx context.Context, req *posv1.UpdateProductRequest) (*posv1.UpdateProductResponse, error) {
 	productID, err := uuid.Parse(req.ProductId)
 	if err != nil {
@@ -92,6 +119,8 @@ func (h *ProductHandler) UpdateProduct(ctx context.Context, req *posv1.UpdatePro
 	return &posv1.UpdateProductResponse{Product: domainProductToProto(p)}, nil
 }
 
+// ArchiveProduct soft-deletes a product. Cross-tenant access is blocked at the
+// database layer via PostgreSQL RLS; a caller from Tenant A cannot affect Tenant B's rows.
 func (h *ProductHandler) ArchiveProduct(ctx context.Context, req *posv1.ArchiveProductRequest) (*posv1.ArchiveProductResponse, error) {
 	id, err := uuid.Parse(req.ProductId)
 	if err != nil {
@@ -103,6 +132,9 @@ func (h *ProductHandler) ArchiveProduct(ctx context.Context, req *posv1.ArchiveP
 	return &posv1.ArchiveProductResponse{}, nil
 }
 
+// GetProduct reads a product by ID. Cross-tenant access is blocked at the
+// database layer via PostgreSQL RLS; the query returns ErrProductNotFound for rows
+// that exist in another tenant, so the caller receives codes.NotFound, not a data leak.
 func (h *ProductHandler) GetProduct(ctx context.Context, req *posv1.GetProductRequest) (*posv1.GetProductResponse, error) {
 	id, err := uuid.Parse(req.ProductId)
 	if err != nil {
@@ -116,9 +148,9 @@ func (h *ProductHandler) GetProduct(ctx context.Context, req *posv1.GetProductRe
 }
 
 func (h *ProductHandler) ListProducts(ctx context.Context, req *posv1.ListProductsRequest) (*posv1.ListProductsResponse, error) {
-	tenantID, err := uuid.Parse(req.TenantId)
+	tenantID, err := tenantIDFromContext(ctx, req.TenantId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
 	}
 	filter := product.Filter{
 		ActiveOnly: req.ActiveOnly,
@@ -143,9 +175,9 @@ func (h *ProductHandler) ListProducts(ctx context.Context, req *posv1.ListProduc
 }
 
 func (h *ProductHandler) LookupBySKU(ctx context.Context, req *posv1.LookupBySKURequest) (*posv1.LookupBySKUResponse, error) {
-	tenantID, err := uuid.Parse(req.TenantId)
+	tenantID, err := tenantIDFromContext(ctx, req.TenantId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
 	}
 	p, err := h.lookupBySKUH.Handle(ctx, tenantID, req.Sku)
 	if err != nil {
@@ -155,9 +187,9 @@ func (h *ProductHandler) LookupBySKU(ctx context.Context, req *posv1.LookupBySKU
 }
 
 func (h *ProductHandler) CreateCategory(ctx context.Context, req *posv1.CreateCategoryRequest) (*posv1.CreateCategoryResponse, error) {
-	tenantID, err := uuid.Parse(req.TenantId)
+	tenantID, err := tenantIDFromContext(ctx, req.TenantId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
 	}
 	c, err := h.createCategoryH.Handle(ctx, command.CreateCategoryInput{
 		TenantID:  tenantID,
@@ -171,9 +203,9 @@ func (h *ProductHandler) CreateCategory(ctx context.Context, req *posv1.CreateCa
 }
 
 func (h *ProductHandler) ReorderCategories(ctx context.Context, req *posv1.ReorderCategoriesRequest) (*posv1.ReorderCategoriesResponse, error) {
-	tenantID, err := uuid.Parse(req.TenantId)
+	tenantID, err := tenantIDFromContext(ctx, req.TenantId)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
 	}
 	orderedIDs := make([]uuid.UUID, 0, len(req.Ids))
 	for _, s := range req.Ids {
