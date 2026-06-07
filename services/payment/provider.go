@@ -15,6 +15,7 @@ import (
 	redisinfra "github.com/xyn-pos/services/payment/internal/infrastructure/redis"
 	grpchandler "github.com/xyn-pos/services/payment/internal/interfaces/grpc"
 	httphandler "github.com/xyn-pos/services/payment/internal/interfaces/http"
+	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 )
 
 // Compile-time interface assertions — fail fast if infrastructure diverges from contracts.
@@ -77,12 +78,24 @@ func NewServer(cfg *Config) (*App, error) {
 	getH := query.NewGetPaymentHandler(paymentRepo)
 	getByOrderH := query.NewGetPaymentByOrderHandler(paymentRepo)
 
+	// PASETO verifier for gRPC auth middleware
+	var verifyFn sharedauth.VerifyFunc
+	if cfg.PASETOKeyHex != "" {
+		verifyFn, err = sharedauth.NewLocalVerifier(cfg.PASETOKeyHex)
+		if err != nil {
+			pool.Close()
+			_ = redisSt.Close()
+			kafkaPub.Close()
+			return nil, fmt.Errorf("payment.NewServer paseto verifier: %w", err)
+		}
+	}
+
 	// Interfaces: gRPC
 	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, getH, getByOrderH)
-	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, grpcHdlr)
+	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, grpcHdlr, verifyFn)
 
 	// Interfaces: HTTP (Midtrans webhook)
-	webhookHTTP := httphandler.NewWebhookHandler(webhookH)
+	webhookHTTP := httphandler.NewWebhookHandler(webhookH, cfg.MidtransServerKey)
 	httpSrv := httphandler.NewHTTPServer(cfg.HTTPPort, webhookHTTP)
 
 	return &App{

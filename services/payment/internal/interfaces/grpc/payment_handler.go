@@ -68,21 +68,29 @@ func (h *PaymentHandler) InitiatePayment(ctx context.Context, req *paymentv1.Ini
 
 // VoidPayment cancels a successful payment.
 func (h *PaymentHandler) VoidPayment(ctx context.Context, req *paymentv1.VoidPaymentRequest) (*paymentv1.VoidPaymentResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
+	}
+
 	paymentID, err := uuid.Parse(req.PaymentId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
 	}
 
-	// VoidedBy comes from JWT claims; dev mode falls back to nil UUID.
-	voidedBy := uuid.Nil
-	if claims, ok := claimsFromContext(ctx); ok {
-		voidedBy = claims.UserID
+	// Load payment first to verify tenant ownership before voiding.
+	p, err := h.getH.Handle(ctx, paymentID)
+	if err != nil {
+		return nil, mapPaymentError(err)
+	}
+	if p.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "payment not found")
 	}
 
 	if err := h.voidH.Handle(ctx, command.VoidPaymentInput{
 		PaymentID: paymentID,
 		Reason:    req.Reason,
-		VoidedBy:  voidedBy,
+		VoidedBy:  claims.UserID,
 	}); err != nil {
 		return nil, mapPaymentError(err)
 	}
@@ -99,6 +107,12 @@ func (h *PaymentHandler) GetPayment(ctx context.Context, req *paymentv1.GetPayme
 	if err != nil {
 		return nil, mapPaymentError(err)
 	}
+	// Verify tenant ownership — return NotFound to avoid existence oracle.
+	if claims, ok := claimsFromContext(ctx); ok {
+		if p.TenantID != claims.TenantID {
+			return nil, status.Error(codes.NotFound, "payment not found")
+		}
+	}
 	return &paymentv1.GetPaymentResponse{Payment: domainToProto(p)}, nil
 }
 
@@ -111,6 +125,12 @@ func (h *PaymentHandler) GetPaymentByOrder(ctx context.Context, req *paymentv1.G
 	p, err := h.getByOrderH.Handle(ctx, orderID)
 	if err != nil {
 		return nil, mapPaymentError(err)
+	}
+	// Verify tenant ownership — return NotFound to avoid existence oracle.
+	if claims, ok := claimsFromContext(ctx); ok {
+		if p.TenantID != claims.TenantID {
+			return nil, status.Error(codes.NotFound, "payment not found")
+		}
 	}
 	return &paymentv1.GetPaymentByOrderResponse{Payment: domainToProto(p)}, nil
 }

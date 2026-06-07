@@ -16,6 +16,7 @@ type Config struct {
 	MidtransIsProduction bool
 	GRPCPort             string
 	HTTPPort             string
+	PASETOKeyHex         string
 }
 
 // ConfigFromEnv reads Config from environment variables.
@@ -28,6 +29,10 @@ func ConfigFromEnv() (*Config, error) {
 	if midKey == "" {
 		return nil, fmt.Errorf("MIDTRANS_SERVER_KEY is required")
 	}
+	pasetoKey := os.Getenv("PASETO_KEY_HEX")
+	if pasetoKey == "" && os.Getenv("ENVIRONMENT") != "dev" {
+		return nil, fmt.Errorf("PASETO_KEY_HEX is required in non-dev environments")
+	}
 	brokersRaw := envOrDefault("KAFKA_BROKERS", "localhost:9092")
 	return &Config{
 		DatabaseURL:          dbURL,
@@ -38,6 +43,7 @@ func ConfigFromEnv() (*Config, error) {
 		MidtransIsProduction: os.Getenv("MIDTRANS_ENV") == "production",
 		GRPCPort:             envOrDefault("PAYMENT_GRPC_PORT", "50053"),
 		HTTPPort:             envOrDefault("PAYMENT_HTTP_PORT", "8083"),
+		PASETOKeyHex:         pasetoKey,
 	}, nil
 }
 

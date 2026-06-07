@@ -1,7 +1,11 @@
 package http
 
 import (
+	"crypto/sha512"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -17,16 +21,19 @@ type midtransNotification struct {
 	TransactionStatus string `json:"transaction_status"`
 	FraudStatus       string `json:"fraud_status"`
 	StatusCode        string `json:"status_code"`
+	GrossAmount       string `json:"gross_amount"`
+	SignatureKey      string `json:"signature_key"`
 }
 
 // WebhookHandler handles Midtrans payment notification callbacks.
 type WebhookHandler struct {
 	handleWebhookH *command.HandleWebhookHandler
+	serverKey      string
 }
 
 // NewWebhookHandler wires the HTTP handler.
-func NewWebhookHandler(h *command.HandleWebhookHandler) *WebhookHandler {
-	return &WebhookHandler{handleWebhookH: h}
+func NewWebhookHandler(h *command.HandleWebhookHandler, serverKey string) *WebhookHandler {
+	return &WebhookHandler{handleWebhookH: h, serverKey: serverKey}
 }
 
 // ServeHTTP implements http.Handler for POST /webhook/payment.
@@ -36,9 +43,21 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20)) // 1MB limit
+	if err != nil {
+		http.Error(w, "failed to read body", http.StatusBadRequest)
+		return
+	}
+
 	var notif midtransNotification
-	if err := json.NewDecoder(r.Body).Decode(&notif); err != nil {
+	if err := json.Unmarshal(body, &notif); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Verify Midtrans signature: sha512(order_id + status_code + gross_amount + server_key)
+	if !h.verifySignature(notif) {
+		http.Error(w, "invalid signature", http.StatusUnauthorized)
 		return
 	}
 
@@ -64,4 +83,17 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"ok":true}`))
+}
+
+// verifySignature checks the Midtrans webhook signature using constant-time comparison.
+// In dev/test mode (serverKey == ""), verification is skipped.
+func (h *WebhookHandler) verifySignature(notif midtransNotification) bool {
+	if h.serverKey == "" {
+		// Dev/test mode: skip verification
+		return true
+	}
+	plain := notif.OrderID + notif.StatusCode + notif.GrossAmount + h.serverKey
+	sum := sha512.Sum512([]byte(plain))
+	expected := hex.EncodeToString(sum[:])
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(notif.SignatureKey)) == 1
 }
