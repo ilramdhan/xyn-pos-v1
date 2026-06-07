@@ -6,3 +6,5 @@ replace (
 	github.com/xyn-pos/gen => ../../gen
 	github.com/xyn-pos/shared => ../../shared/go
 )
+
+require github.com/midtrans/midtrans-go v1.3.8 // indirect
