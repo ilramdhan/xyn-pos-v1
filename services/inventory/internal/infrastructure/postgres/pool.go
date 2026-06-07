@@ -20,7 +20,7 @@ func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("postgres.NewPool ping: %w", err)
 	}
 	db := stdlib.OpenDBFromPool(pool)
-	defer db.Close()
+	defer db.Close() //nolint:errcheck // sql.DB wrapping pgxpool; close error is not actionable here
 
 	goose.SetBaseFS(MigrationsFS)
 	if err := goose.SetDialect("postgres"); err != nil {

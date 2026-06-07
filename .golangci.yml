@@ -87,6 +87,31 @@ linters:
           - errcheck
           - govet
 
+      # Domain and application layers use DDD naming; exported-comment and stutter
+      # rules add noise without value for internal business types.
+      - path: "internal/domain/"
+        linters: [revive]
+        text: "exported"
+
+      - path: "internal/application/"
+        linters: [revive]
+        text: "exported"
+
+      # Infrastructure types are implementation details; comment warnings not needed.
+      - path: "internal/infrastructure/"
+        linters: [revive]
+        text: "exported"
+
+      # gRPC handler methods implement protobuf service contracts; godoc adds no value.
+      - path: "internal/interfaces/"
+        linters: [revive]
+        text: "exported"
+
+      # Test files don't need godoc on helper vars.
+      - path: "_test\\.go"
+        linters: [revive]
+        text: "exported"
+
 # v2: gofmt and goimports are formatters, not linters
 formatters:
   enable:

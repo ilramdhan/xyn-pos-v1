@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	sharedauth "github.com/xyn-pos/shared/pkg/auth"
+
 	"github.com/xyn-pos/services/tenant/internal/domain/user"
+	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 )
 
 // LoginInput is the command payload.

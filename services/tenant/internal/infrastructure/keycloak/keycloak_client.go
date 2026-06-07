@@ -67,7 +67,7 @@ func (c *Client) Introspect(ctx context.Context, accessToken string) (*Introspec
 	if err != nil {
 		return nil, fmt.Errorf("keycloak.Introspect http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // body close error is not actionable after read
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -120,7 +120,7 @@ func (c *Client) CreateUser(ctx context.Context, adminToken string, req CreateUs
 	if err != nil {
 		return "", fmt.Errorf("keycloak.CreateUser http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // body close error is not actionable after read
 
 	if resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(resp.Body)

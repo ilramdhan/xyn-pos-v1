@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"github.com/xyn-pos/services/tenant/internal/application/command"
 	"github.com/xyn-pos/services/tenant/internal/domain/user"
 )
@@ -103,5 +104,5 @@ func TestRegisterUser_Success_SavesUser(t *testing.T) {
 	assert.Equal(t, "new@example.com", result.Email)
 }
 
-// keep errors imported to avoid unused import if tests don't use it directly
+// keep errors imported to avoid unused import if tests don't use it directly.
 var _ = errors.New

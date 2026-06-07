@@ -12,20 +12,25 @@ import (
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
-	defer cancel()
 
 	cfg, err := pos.LoadConfig()
 	if err != nil {
+		cancel()
 		slog.Error("failed to load config", "err", err)
 		os.Exit(1)
 	}
 
 	app, err := pos.New(ctx, cfg)
 	if err != nil {
+		cancel()
 		slog.Error("failed to initialize pos service", "err", err)
 		os.Exit(1)
 	}
-	defer app.Stop()
+
+	defer func() {
+		app.Stop()
+		cancel()
+	}()
 
 	slog.Info("pos service starting", "port", cfg.GRPCPort)
 	if err := app.Start(ctx); err != nil {

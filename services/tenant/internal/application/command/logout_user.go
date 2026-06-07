@@ -33,7 +33,7 @@ func NewLogoutHandler(verify sharedauth.VerifyFunc, blacklist TokenBlacklister) 
 func (h *LogoutHandler) Handle(ctx context.Context, in LogoutInput) error {
 	claims, err := h.verify(in.PASETOToken)
 	if err != nil {
-		return fmt.Errorf("Logout verify: %w", err)
+		return fmt.Errorf("logout verify: %w", err)
 	}
 
 	ttl := time.Until(claims.Expiry)
@@ -42,7 +42,7 @@ func (h *LogoutHandler) Handle(ctx context.Context, in LogoutInput) error {
 	}
 
 	if err := h.blacklist.Blacklist(ctx, claims.JTI, ttl); err != nil {
-		return fmt.Errorf("Logout blacklist: %w", err)
+		return fmt.Errorf("logout blacklist: %w", err)
 	}
 	return nil
 }

@@ -7,8 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/xyn-pos/services/tenant/internal/application/command"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/xyn-pos/services/tenant/internal/application/command"
 )
 
 func TestVerifyPIN_WrongPIN_ReturnsFalse(t *testing.T) {

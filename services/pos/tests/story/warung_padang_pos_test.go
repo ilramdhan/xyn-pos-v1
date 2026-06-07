@@ -146,7 +146,7 @@ func TestWarungPadangGoldenPath_POS(t *testing.T) {
 	assert.Equal(t, orderdomain.StatusPendingPayment, order.Status)
 
 	// Cannot add items once submitted — enforces aggregate invariant
-	err = order.AddItem(orderdomain.OrderItem{ProductName: "Es Teh", Quantity: 1, UnitPrice: 300_000})
+	err = order.AddItem(orderdomain.OrderItem{ProductName: "Es Teh", Quantity: 1, UnitPrice: 300_000}) //nolint:misspell // "Teh" is Bahasa Indonesia for tea
 	assert.ErrorIs(t, err, orderdomain.ErrOrderNotDraft)
 
 	// =========================================================================

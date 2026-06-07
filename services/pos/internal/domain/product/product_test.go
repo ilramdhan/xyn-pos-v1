@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/xyn-pos/services/pos/internal/domain/product"
 )
 
@@ -59,7 +60,7 @@ func TestProduct_AddAddonGroup_MaxSelectionsZero_ReturnsError(t *testing.T) {
 
 func TestProduct_Archive_AlreadyInactive_ReturnsError(t *testing.T) {
 	p, _ := product.NewProduct(uuid.New(), nil, "SKU-001", "Nasi", "", 25000_00, product.TaxTypePPN)
-	p.Archive()
+	require.NoError(t, p.Archive()) // first archive succeeds
 	err := p.Archive()
 	assert.ErrorIs(t, err, product.ErrProductAlreadyArchived)
 }

@@ -29,6 +29,5 @@ func main() {
 	slog.Info("inventory: service starting", "grpc_port", cfg.GRPCPort)
 	if err := app.Run(ctx); err != nil && err != context.Canceled {
 		slog.Error("inventory: service error", "err", err)
-		os.Exit(1)
 	}
 }

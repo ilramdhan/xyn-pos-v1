@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"github.com/xyn-pos/services/tenant/internal/application/command"
 	"github.com/xyn-pos/services/tenant/internal/domain/user"
 )

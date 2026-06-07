@@ -10,9 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	sharedauth "github.com/xyn-pos/shared/pkg/auth"
+
 	"github.com/xyn-pos/services/tenant/internal/application/command"
 	"github.com/xyn-pos/services/tenant/internal/domain/user"
+	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 )
 
 type MockTokenBlacklister struct{ mock.Mock }

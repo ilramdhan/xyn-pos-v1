@@ -29,6 +29,7 @@ func isUniqueViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
+// FindByID returns a user by primary key.
 func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*user.User, error) {
 	const q = `SELECT id, tenant_id, keycloak_id, email, full_name, role,
 	                   branch_scope, is_active, created_at, updated_at
@@ -36,6 +37,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*user.User
 	return r.scanOne(ctx, q, id)
 }
 
+// FindByEmail returns a user by tenant and email address.
 func (r *UserRepository) FindByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*user.User, error) {
 	const q = `SELECT id, tenant_id, keycloak_id, email, full_name, role,
 	                   branch_scope, is_active, created_at, updated_at
@@ -43,6 +45,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, tenantID uuid.UUID, em
 	return r.scanOne(ctx, q, tenantID, email)
 }
 
+// FindByKeycloakID returns a user by their Keycloak subject ID.
 func (r *UserRepository) FindByKeycloakID(ctx context.Context, keycloakID string) (*user.User, error) {
 	const q = `SELECT id, tenant_id, keycloak_id, email, full_name, role,
 	                   branch_scope, is_active, created_at, updated_at
@@ -50,6 +53,7 @@ func (r *UserRepository) FindByKeycloakID(ctx context.Context, keycloakID string
 	return r.scanOne(ctx, q, keycloakID)
 }
 
+// FindByTenant returns all users belonging to a tenant.
 func (r *UserRepository) FindByTenant(ctx context.Context, tenantID uuid.UUID) ([]*user.User, error) {
 	const q = `SELECT id, tenant_id, keycloak_id, email, full_name, role,
 	                   branch_scope, is_active, created_at, updated_at
@@ -72,6 +76,7 @@ func (r *UserRepository) FindByTenant(ctx context.Context, tenantID uuid.UUID) (
 	return result, rows.Err()
 }
 
+// Save inserts a new user record.
 func (r *UserRepository) Save(ctx context.Context, u *user.User) error {
 	const q = `INSERT INTO users (id, tenant_id, keycloak_id, email, full_name, role,
 	                               branch_scope, is_active, created_at, updated_at)
@@ -91,6 +96,7 @@ func (r *UserRepository) Save(ctx context.Context, u *user.User) error {
 	return nil
 }
 
+// Update persists changes to an existing user record.
 func (r *UserRepository) Update(ctx context.Context, u *user.User) error {
 	const q = `UPDATE users SET role = $2, branch_scope = $3, is_active = $4, updated_at = $5
 	           WHERE id = $1`
@@ -103,6 +109,7 @@ func (r *UserRepository) Update(ctx context.Context, u *user.User) error {
 	return nil
 }
 
+// SavePIN upserts the bcrypt PIN hash for a user.
 func (r *UserRepository) SavePIN(ctx context.Context, userID uuid.UUID, pinHash string) error {
 	const q = `INSERT INTO user_pins (user_id, pin_hash, updated_at) VALUES ($1, $2, now())
 	           ON CONFLICT (user_id) DO UPDATE SET pin_hash = $2, updated_at = now()`
@@ -113,6 +120,7 @@ func (r *UserRepository) SavePIN(ctx context.Context, userID uuid.UUID, pinHash 
 	return nil
 }
 
+// FindPINHash returns the bcrypt PIN hash for a user.
 func (r *UserRepository) FindPINHash(ctx context.Context, userID uuid.UUID) (string, error) {
 	var hash string
 	err := r.pool.QueryRow(ctx, `SELECT pin_hash FROM user_pins WHERE user_id = $1`, userID).Scan(&hash)

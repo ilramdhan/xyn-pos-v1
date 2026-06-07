@@ -78,7 +78,7 @@ func (r *CategoryRepository) UpdateSortOrders(ctx context.Context, tenantID uuid
 			i, time.Now().UTC(), id, tenantID)
 	}
 	br := r.pool.SendBatch(ctx, batch)
-	defer br.Close()
+	defer br.Close() //nolint:errcheck // batch close error is not actionable after results are read
 
 	for range orderedIDs {
 		if _, err := br.Exec(); err != nil {

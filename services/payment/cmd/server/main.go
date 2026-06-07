@@ -29,6 +29,5 @@ func main() {
 	slog.Info("payment: service starting", "grpc_port", cfg.GRPCPort, "http_port", cfg.HTTPPort)
 	if err := app.Run(ctx); err != nil && err != context.Canceled {
 		slog.Error("payment: service error", "err", err)
-		os.Exit(1)
 	}
 }

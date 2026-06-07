@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // HTTPServer wraps the standard http.Server for the webhook endpoint.
@@ -17,8 +18,9 @@ func NewHTTPServer(port string, webhookH *WebhookHandler) *HTTPServer {
 	mux.Handle("/webhook/payment", webhookH)
 	return &HTTPServer{
 		server: &http.Server{
-			Addr:    fmt.Sprintf(":%s", port),
-			Handler: mux,
+			Addr:              fmt.Sprintf(":%s", port),
+			Handler:           mux,
+			ReadHeaderTimeout: 10 * time.Second,
 		},
 	}
 }

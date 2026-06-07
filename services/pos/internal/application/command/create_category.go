@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/xyn-pos/services/pos/internal/domain/product"
 )
 

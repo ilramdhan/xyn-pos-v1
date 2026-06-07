@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+
 	"github.com/xyn-pos/services/tenant/internal/domain/user"
 )
 

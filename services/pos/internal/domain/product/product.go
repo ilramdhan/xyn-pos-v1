@@ -11,8 +11,8 @@ import (
 type TaxType string
 
 const (
-	TaxTypePPN  TaxType = "ppn"  // 11% exclusive
-	TaxTypePB1  TaxType = "pb1"  // 10% inclusive (reporting)
+	TaxTypePPN  TaxType = "ppn" // 11% exclusive
+	TaxTypePB1  TaxType = "pb1" // 10% inclusive (reporting)
 	TaxTypeNone TaxType = "none"
 )
 
