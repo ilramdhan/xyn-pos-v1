@@ -28,7 +28,7 @@ func main() {
 	defer app.Stop()
 
 	slog.Info("pos service starting", "port", cfg.GRPCPort)
-	if err := app.Start(); err != nil {
+	if err := app.Start(ctx); err != nil {
 		slog.Error("pos service stopped", "err", err)
 	}
 }

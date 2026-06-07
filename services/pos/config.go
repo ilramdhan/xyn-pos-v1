@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config holds all environment-driven configuration for the pos service.
@@ -15,6 +16,7 @@ type Config struct {
 	GRPCPort     int
 	OTLPEndpoint string
 	PASETOKeyHex string
+	KafkaBrokers []string
 }
 
 // LoadConfig reads configuration from environment variables.
@@ -43,6 +45,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("config: invalid GRPC_PORT %q: %w", portStr, err)
 	}
 	cfg.GRPCPort = port
+
+	cfg.KafkaBrokers = strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ",")
 
 	return cfg, nil
 }

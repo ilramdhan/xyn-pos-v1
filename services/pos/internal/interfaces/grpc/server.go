@@ -19,7 +19,7 @@ type Server struct {
 
 // NewServer builds the gRPC server with auth + recovery middleware.
 // Pass nil for verifyFn to skip auth (test scenarios).
-func NewServer(port int, productHandler *ProductHandler, verifyFn sharedauth.VerifyFunc) *Server {
+func NewServer(port int, productHandler *ProductHandler, orderHandler *OrderHandler, verifyFn sharedauth.VerifyFunc) *Server {
 	opts := middleware.Chain(
 		middleware.Auth(verifyFn),
 		middleware.Recovery(),
@@ -28,6 +28,9 @@ func NewServer(port int, productHandler *ProductHandler, verifyFn sharedauth.Ver
 
 	if productHandler != nil {
 		posv1.RegisterProductServiceServer(srv, productHandler)
+	}
+	if orderHandler != nil {
+		posv1.RegisterOrderServiceServer(srv, orderHandler)
 	}
 
 	return &Server{grpc: srv, port: port}

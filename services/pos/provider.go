@@ -6,6 +6,7 @@ import (
 
 	"github.com/xyn-pos/services/pos/internal/application/command"
 	"github.com/xyn-pos/services/pos/internal/application/query"
+	kafkainfra "github.com/xyn-pos/services/pos/internal/infrastructure/kafka"
 	"github.com/xyn-pos/services/pos/internal/infrastructure/postgres"
 	grpchandler "github.com/xyn-pos/services/pos/internal/interfaces/grpc"
 	sharedauth "github.com/xyn-pos/shared/pkg/auth"
@@ -16,6 +17,7 @@ import (
 // App is the assembled pos service.
 type App struct {
 	grpc     *grpchandler.Server
+	consumer *kafkainfra.PaymentConsumer
 	shutdown func()
 }
 
@@ -67,28 +69,75 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 		}
 	}
 
-	// 7. Interface layer
+	// 7. Order domain
+	orderRepo := postgres.NewOrderRepository(pool)
+	shiftRepo := postgres.NewShiftRepository(pool)
+
+	kafkaPublisher, err := kafkainfra.NewEventPublisher(cfg.KafkaBrokers)
+	if err != nil {
+		pool.Close()
+		shutdownTelemetry()
+		return nil, fmt.Errorf("pos.New kafka publisher: %w", err)
+	}
+
+	createOrderH := command.NewCreateOrderHandler(orderRepo, kafkaPublisher)
+	addItemH := command.NewAddItemHandler(orderRepo)
+	removeItemH := command.NewRemoveItemHandler(orderRepo)
+	updateQtyH := command.NewUpdateItemQuantityHandler(orderRepo)
+	applyDiscountH := command.NewApplyDiscountHandler(orderRepo)
+	submitOrderH := command.NewSubmitOrderHandler(orderRepo)
+	cancelOrderH := command.NewCancelOrderHandler(orderRepo, kafkaPublisher)
+	markOrderPaidH := command.NewMarkOrderPaidHandler(orderRepo, kafkaPublisher)
+	openShiftH := command.NewOpenShiftHandler(shiftRepo)
+	closeShiftH := command.NewCloseShiftHandler(shiftRepo)
+	getOrderH := query.NewGetOrderHandler(orderRepo)
+	listOrdersH := query.NewListOrdersHandler(orderRepo)
+	getShiftH := query.NewGetShiftHandler(shiftRepo)
+
+	orderHandler := grpchandler.NewOrderHandler(
+		createOrderH, addItemH, removeItemH, updateQtyH,
+		applyDiscountH, submitOrderH, cancelOrderH,
+		openShiftH, closeShiftH,
+		getOrderH, listOrdersH, getShiftH,
+	)
+
+	paymentConsumer, err := kafkainfra.NewPaymentConsumer(cfg.KafkaBrokers, markOrderPaidH)
+	if err != nil {
+		kafkaPublisher.Close()
+		pool.Close()
+		shutdownTelemetry()
+		return nil, fmt.Errorf("pos.New kafka consumer: %w", err)
+	}
+
+	// 8. Interface layer
 	productHandler := grpchandler.NewProductHandler(
 		createProductH, updateProductH, archiveProductH,
 		createCategoryH, reorderCategoryH, setBranchPriceH,
 		getProductH, listProductsH, lookupBySKUH,
 	)
-	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, productHandler, verifyFn)
+	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, productHandler, orderHandler, verifyFn)
 
 	return &App{
-		grpc: grpcSrv,
+		grpc:     grpcSrv,
+		consumer: paymentConsumer,
 		shutdown: func() {
+			kafkaPublisher.Close()
 			pool.Close()
 			shutdownTelemetry()
 		},
 	}, nil
 }
 
-// Start begins serving gRPC traffic. Blocks until the server stops.
-func (a *App) Start() error { return a.grpc.Start() }
+// Start begins serving gRPC traffic. Launches the Kafka consumer in the background
+// and blocks until the gRPC server stops.
+func (a *App) Start(ctx context.Context) error {
+	go a.consumer.Run(ctx)
+	return a.grpc.Start()
+}
 
 // Stop gracefully drains connections and releases resources.
 func (a *App) Stop() {
 	a.grpc.GracefulStop()
+	a.consumer.Close()
 	a.shutdown()
 }
