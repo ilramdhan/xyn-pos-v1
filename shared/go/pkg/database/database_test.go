@@ -16,7 +16,7 @@ func TestNewPool_InvalidDSN_ReturnsError(t *testing.T) {
 
 func TestNewPool_UnreachableHost_ReturnsError(t *testing.T) {
 	_, err := shareddb.NewPool(context.Background(), shareddb.Config{
-		DSN: "postgres://test:test@localhost:1/testdb?sslmode=disable&connect_timeout=1",
+		DSN: "postgres://test:test@localhost:1/testdb?sslmode=disable&connect_timeout=1", //nolint:gosec
 	})
 	assert.Error(t, err)
 }

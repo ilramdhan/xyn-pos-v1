@@ -10,49 +10,49 @@ option go_package = "github.com/xyn-pos/gen/tenant/v1;tenantv1";
 // PlanTier defines subscription plan levels.
 enum PlanTier {
   PLAN_TIER_UNSPECIFIED = 0;
-  PLAN_TIER_FREE        = 1;
-  PLAN_TIER_GROWTH      = 2;
-  PLAN_TIER_ENTERPRISE  = 3;
+  PLAN_TIER_FREE = 1;
+  PLAN_TIER_GROWTH = 2;
+  PLAN_TIER_ENTERPRISE = 3;
 }
 
 // TenantStatus defines the operational state of a tenant.
 enum TenantStatus {
   TENANT_STATUS_UNSPECIFIED = 0;
-  TENANT_STATUS_ACTIVE      = 1;
-  TENANT_STATUS_SUSPENDED   = 2;
-  TENANT_STATUS_DELETED     = 3;
+  TENANT_STATUS_ACTIVE = 1;
+  TENANT_STATUS_SUSPENDED = 2;
+  TENANT_STATUS_DELETED = 3;
 }
 
 // Tenant represents a multi-tenant customer organization.
 message Tenant {
-  string       id         = 1;
-  string       name       = 2;
-  string       slug       = 3;
-  PlanTier     plan       = 4;
-  TenantStatus status     = 5;
-  string       created_at = 6;
-  string       updated_at = 7;
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  PlanTier plan = 4;
+  TenantStatus status = 5;
+  string created_at = 6;
+  string updated_at = 7;
 }
 
 // Branch represents a physical location within a tenant.
 message Branch {
-  string            id         = 1;
-  string            tenant_id  = 2;
-  string            name       = 3;
-  common.v1.Address address    = 4;
-  string            timezone   = 5;
-  bool              is_active  = 6;
-  string            created_at = 7;
-  string            updated_at = 8;
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  common.v1.Address address = 4;
+  string timezone = 5;
+  bool is_active = 6;
+  string created_at = 7;
+  string updated_at = 8;
 }
 
 // --- Requests ---
 
 message CreateTenantRequest {
-  string   idempotency_key = 1;
-  string   name            = 2;
-  string   slug            = 3;
-  PlanTier plan            = 4;
+  string idempotency_key = 1;
+  string name = 2;
+  string slug = 3;
+  PlanTier plan = 4;
 }
 
 message GetTenantRequest {
@@ -60,15 +60,15 @@ message GetTenantRequest {
 }
 
 message CreateBranchRequest {
-  string            idempotency_key = 1;
-  string            tenant_id       = 2;
-  string            name            = 3;
-  common.v1.Address address         = 4;
-  string            timezone        = 5;
+  string idempotency_key = 1;
+  string tenant_id = 2;
+  string name = 3;
+  common.v1.Address address = 4;
+  string timezone = 5;
 }
 
 message ListBranchesRequest {
-  string                    tenant_id  = 1;
+  string tenant_id = 1;
   common.v1.PaginationRequest pagination = 2;
 }
 
@@ -87,14 +87,14 @@ message CreateBranchResponse {
 }
 
 message ListBranchesResponse {
-  repeated Branch           branches   = 1;
-  common.v1.PaginationMeta  pagination = 2;
+  repeated Branch branches = 1;
+  common.v1.PaginationMeta pagination = 2;
 }
 
 // TenantService manages tenant lifecycle and branch management.
 service TenantService {
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
-  rpc GetTenant(GetTenantRequest)       returns (GetTenantResponse);
+  rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
   rpc CreateBranch(CreateBranchRequest) returns (CreateBranchResponse);
   rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
 }
