@@ -43,7 +43,7 @@ jobs:
           setup_only: true
 
       - name: Check for breaking changes
-        run: buf breaking proto/ --against '.git#branch=main,subdir=proto'
+        run: buf breaking proto/ --against "https://github.com/${{ github.repository }}.git#branch=main,subdir=proto"
 
   generate:
     name: Verify Generated Code
