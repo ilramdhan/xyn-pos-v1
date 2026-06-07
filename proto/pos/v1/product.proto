@@ -9,152 +9,166 @@ option go_package = "github.com/xyn-pos/gen/pos/v1;posv1";
 // TaxType determines how tax is applied to a product.
 enum TaxType {
   TAX_TYPE_UNSPECIFIED = 0;
-  TAX_TYPE_PPN         = 1; // 11% exclusive (added on top)
-  TAX_TYPE_PB1         = 2; // 10% inclusive (reporting only)
-  TAX_TYPE_NONE        = 3;
+  TAX_TYPE_PPN = 1; // 11% exclusive (added on top)
+  TAX_TYPE_PB1 = 2; // 10% inclusive (reporting only)
+  TAX_TYPE_NONE = 3;
 }
 
 // Category groups products for display and filtering. Categories are tenant-global; all branches see the same catalog.
 message Category {
-  string id         = 1;
-  string tenant_id  = 2;
-  string name       = 3;
-  int32  sort_order = 4;
-  string parent_id  = 5; // empty = top-level
-  bool   is_active  = 6;
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  int32 sort_order = 4;
+  string parent_id = 5; // empty = top-level
+  bool is_active = 6;
   string created_at = 7;
   string updated_at = 8;
 }
 
 // Variant is a product option (e.g. "Porsi Kecil") with a price delta.
 message Variant {
-  string id          = 1;
-  string product_id  = 2;
-  string name        = 3;
-  int64  price_delta = 4; // sen; FinalPrice = BasePrice + PriceDelta
-  string sku         = 5;
-  bool   is_active   = 6;
+  string id = 1;
+  string product_id = 2;
+  string name = 3;
+  int64 price_delta = 4; // sen; FinalPrice = BasePrice + PriceDelta
+  string sku = 5;
+  bool is_active = 6;
 }
 
 // Addon is a selectable extra within an addon group.
 message Addon {
-  string id             = 1;
+  string id = 1;
   string addon_group_id = 2;
-  string name           = 3;
-  int64  price          = 4; // sen, >= 0
-  bool   is_active      = 5;
+  string name = 3;
+  int64 price = 4; // sen, >= 0
+  bool is_active = 5;
 }
 
 // AddonGroup is a set of add-ons attached to a product (e.g. "Extra Lauk").
 message AddonGroup {
-  string id             = 1;
-  string product_id     = 2;
-  string name           = 3;
-  bool   is_required    = 4;
-  int32  max_selections = 5;
+  string id = 1;
+  string product_id = 2;
+  string name = 3;
+  bool is_required = 4;
+  int32 max_selections = 5;
   repeated Addon addons = 6;
 }
 
 // Product is the catalog item aggregate.
 message Product {
-  string id                    = 1;
-  string tenant_id             = 2;
-  string category_id           = 3;
-  string sku                   = 4;
-  string name                  = 5;
-  string description           = 6;
-  int64  base_price            = 7;  // sen
-  TaxType tax_type             = 8;
-  bool   is_active             = 9;
-  repeated Variant variants    = 10;
+  string id = 1;
+  string tenant_id = 2;
+  string category_id = 3;
+  string sku = 4;
+  string name = 5;
+  string description = 6;
+  int64 base_price = 7; // sen
+  TaxType tax_type = 8;
+  bool is_active = 9;
+  repeated Variant variants = 10;
   repeated AddonGroup addon_groups = 11;
-  string created_at            = 12;
-  string updated_at            = 13;
+  string created_at = 12;
+  string updated_at = 13;
 }
 
 // --- Requests ---
 
 message CreateCategoryRequest {
-  string tenant_id  = 1;
-  string name       = 2;
-  int32  sort_order = 3;
-  string parent_id  = 4;
+  string tenant_id = 1;
+  string name = 2;
+  int32 sort_order = 3;
+  string parent_id = 4;
 }
-message CreateCategoryResponse { Category category = 1; }
+message CreateCategoryResponse {
+  Category category = 1;
+}
 
 message ReorderCategoriesRequest {
-  string tenant_id    = 1;
+  string tenant_id = 1;
   repeated string ids = 2; // ordered list of category IDs
 }
 message ReorderCategoriesResponse {}
 
 message CreateProductRequest {
-  string idempotency_key  = 1;
-  string tenant_id        = 2;
-  string category_id      = 3;
-  string sku              = 4;
-  string name             = 5;
-  string description      = 6;
-  int64  base_price       = 7;
-  TaxType tax_type        = 8;
-  repeated Variant variants       = 9;
+  string idempotency_key = 1;
+  string tenant_id = 2;
+  string category_id = 3;
+  string sku = 4;
+  string name = 5;
+  string description = 6;
+  int64 base_price = 7;
+  TaxType tax_type = 8;
+  repeated Variant variants = 9;
   repeated AddonGroup addon_groups = 10;
 }
-message CreateProductResponse { Product product = 1; }
+message CreateProductResponse {
+  Product product = 1;
+}
 
 message UpdateProductRequest {
   string idempotency_key = 1;
-  string product_id   = 2;
-  string name         = 3;
-  string description  = 4;
-  int64  base_price   = 5;
-  TaxType tax_type    = 6;
-  string category_id  = 7;
+  string product_id = 2;
+  string name = 3;
+  string description = 4;
+  int64 base_price = 5;
+  TaxType tax_type = 6;
+  string category_id = 7;
 }
-message UpdateProductResponse { Product product = 1; }
+message UpdateProductResponse {
+  Product product = 1;
+}
 
-message ArchiveProductRequest { string product_id = 1; }
+message ArchiveProductRequest {
+  string product_id = 1;
+}
 message ArchiveProductResponse {}
 
 message SetBranchPriceRequest {
   string idempotency_key = 1;
-  string branch_id      = 2;
-  string product_id     = 3;
-  int64  override_price = 4; // 0 = remove override
-  bool   is_available   = 5;
+  string branch_id = 2;
+  string product_id = 3;
+  int64 override_price = 4; // 0 = remove override
+  bool is_available = 5;
 }
 message SetBranchPriceResponse {}
 
-message GetProductRequest    { string product_id = 1; }
-message GetProductResponse   { Product product = 1; }
+message GetProductRequest {
+  string product_id = 1;
+}
+message GetProductResponse {
+  Product product = 1;
+}
 
 message ListProductsRequest {
-  string tenant_id    = 1;
-  string category_id  = 2; // optional filter
-  string branch_id    = 3; // optional: include branch override price
-  bool   active_only  = 4;
+  string tenant_id = 1;
+  string category_id = 2; // optional filter
+  string branch_id = 3; // optional: include branch override price
+  bool active_only = 4;
   common.v1.PaginationRequest pagination = 5;
 }
 message ListProductsResponse {
-  repeated Product products    = 1;
+  repeated Product products = 1;
   common.v1.PaginationMeta pagination = 2;
 }
 
 message LookupBySKURequest {
   string tenant_id = 1;
-  string sku       = 2;
+  string sku = 2;
 }
-message LookupBySKUResponse { Product product = 1; }
+message LookupBySKUResponse {
+  Product product = 1;
+}
 
 // ProductService manages product catalog for a tenant.
 service ProductService {
-  rpc CreateCategory(CreateCategoryRequest)       returns (CreateCategoryResponse);
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
   rpc ReorderCategories(ReorderCategoriesRequest) returns (ReorderCategoriesResponse);
-  rpc CreateProduct(CreateProductRequest)         returns (CreateProductResponse);
-  rpc UpdateProduct(UpdateProductRequest)         returns (UpdateProductResponse);
-  rpc ArchiveProduct(ArchiveProductRequest)       returns (ArchiveProductResponse);
-  rpc SetBranchPrice(SetBranchPriceRequest)       returns (SetBranchPriceResponse);
-  rpc GetProduct(GetProductRequest)               returns (GetProductResponse);
-  rpc ListProducts(ListProductsRequest)           returns (ListProductsResponse);
-  rpc LookupBySKU(LookupBySKURequest)             returns (LookupBySKUResponse);
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc ArchiveProduct(ArchiveProductRequest) returns (ArchiveProductResponse);
+  rpc SetBranchPrice(SetBranchPriceRequest) returns (SetBranchPriceResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc LookupBySKU(LookupBySKURequest) returns (LookupBySKUResponse);
 }

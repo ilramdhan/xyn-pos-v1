@@ -6,89 +6,99 @@ option go_package = "github.com/xyn-pos/gen/inventory/v1;inventoryv1";
 
 // MovementType describes why stock changed.
 enum MovementType {
-  MOVEMENT_TYPE_UNSPECIFIED  = 0;
-  MOVEMENT_TYPE_IN           = 1; // Purchase / receive
-  MOVEMENT_TYPE_OUT          = 2; // Order consumption
-  MOVEMENT_TYPE_ADJUSTMENT   = 3; // Manual correction
+  MOVEMENT_TYPE_UNSPECIFIED = 0;
+  MOVEMENT_TYPE_IN = 1; // Purchase / receive
+  MOVEMENT_TYPE_OUT = 2; // Order consumption
+  MOVEMENT_TYPE_ADJUSTMENT = 3; // Manual correction
 }
 
 // StockLedger is the current stock level for one SKU at one location.
 message StockLedger {
-  string id         = 1;
-  string tenant_id  = 2;
-  string branch_id  = 3;
+  string id = 1;
+  string tenant_id = 2;
+  string branch_id = 3;
   string product_id = 4;
   string variant_id = 5; // empty if product has no variants
-  int64  quantity   = 6; // minor units (e.g. grams, ml, pieces)
-  string unit       = 7; // "pcs", "g", "ml"
-  int64  low_stock_threshold = 8; // alert when quantity <= this
+  int64 quantity = 6; // minor units (e.g. grams, ml, pieces)
+  string unit = 7; // "pcs", "g", "ml"
+  int64 low_stock_threshold = 8; // alert when quantity <= this
   string updated_at = 9;
 }
 
 // StockMovement records a single stock change event.
 message StockMovement {
-  string       id           = 1;
-  string       tenant_id    = 2;
-  string       branch_id    = 3;
-  string       product_id   = 4;
-  string       variant_id   = 5;
-  int64        delta        = 6; // positive = IN, negative = OUT
-  MovementType type         = 7;
-  string       reference_id = 8; // order_id, purchase_id, etc.
-  string       note         = 9;
-  string       created_at   = 10;
+  string id = 1;
+  string tenant_id = 2;
+  string branch_id = 3;
+  string product_id = 4;
+  string variant_id = 5;
+  int64 delta = 6; // positive = IN, negative = OUT
+  MovementType type = 7;
+  string reference_id = 8; // order_id, purchase_id, etc.
+  string note = 9;
+  string created_at = 10;
 }
 
 // BOMRecipe defines which ingredients a product uses.
 message BOMRecipe {
-  string id                  = 1;
-  string tenant_id           = 2;
-  string product_id          = 3;
+  string id = 1;
+  string tenant_id = 2;
+  string product_id = 3;
   string ingredient_product_id = 4; // the ingredient
-  int64  quantity_per_unit   = 5;   // how much per 1 unit sold
-  string unit                = 6;
+  int64 quantity_per_unit = 5; // how much per 1 unit sold
+  string unit = 6;
 }
 
 // --- Requests / Responses ---
 
 message GetStockRequest {
-  string branch_id  = 1;
+  string branch_id = 1;
   string product_id = 2;
   string variant_id = 3;
 }
-message GetStockResponse { StockLedger stock = 1; }
+message GetStockResponse {
+  StockLedger stock = 1;
+}
 
 message ListStockRequest {
   string branch_id = 1;
-  bool   low_stock_only = 2;
+  bool low_stock_only = 2;
 }
-message ListStockResponse { repeated StockLedger stocks = 1; }
+message ListStockResponse {
+  repeated StockLedger stocks = 1;
+}
 
 message AdjustStockRequest {
   string idempotency_key = 1;
-  string branch_id       = 2;
-  string product_id      = 3;
-  string variant_id      = 4;
-  int64  delta           = 5;
-  string note            = 6;
+  string branch_id = 2;
+  string product_id = 3;
+  string variant_id = 4;
+  int64 delta = 5;
+  string note = 6;
 }
-message AdjustStockResponse { StockLedger stock = 1; }
+message AdjustStockResponse {
+  StockLedger stock = 1;
+}
 
-message GetBOMRequest  { string product_id = 1; }
-message GetBOMResponse { repeated BOMRecipe recipes = 1; }
+message GetBOMRequest {
+  string product_id = 1;
+}
+message GetBOMResponse {
+  repeated BOMRecipe recipes = 1;
+}
 
 message SetBOMRequest {
-  string idempotency_key     = 1;
-  string product_id          = 2;
+  string idempotency_key = 1;
+  string product_id = 2;
   repeated BOMRecipe recipes = 3;
 }
 message SetBOMResponse {}
 
 // InventoryService exposes stock management RPCs.
 service InventoryService {
-  rpc GetStock    (GetStockRequest)    returns (GetStockResponse);
-  rpc ListStock   (ListStockRequest)   returns (ListStockResponse);
-  rpc AdjustStock (AdjustStockRequest) returns (AdjustStockResponse);
-  rpc GetBOM      (GetBOMRequest)      returns (GetBOMResponse);
-  rpc SetBOM      (SetBOMRequest)      returns (SetBOMResponse);
+  rpc GetStock(GetStockRequest) returns (GetStockResponse);
+  rpc ListStock(ListStockRequest) returns (ListStockResponse);
+  rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
+  rpc GetBOM(GetBOMRequest) returns (GetBOMResponse);
+  rpc SetBOM(SetBOMRequest) returns (SetBOMResponse);
 }

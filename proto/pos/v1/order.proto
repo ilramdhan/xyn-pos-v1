@@ -9,163 +9,206 @@ option go_package = "github.com/xyn-pos/gen/pos/v1;posv1";
 // OrderType describes how the order is fulfilled.
 enum OrderType {
   ORDER_TYPE_UNSPECIFIED = 0;
-  ORDER_TYPE_DINE_IN     = 1;
-  ORDER_TYPE_TAKEAWAY    = 2;
-  ORDER_TYPE_DELIVERY    = 3;
+  ORDER_TYPE_DINE_IN = 1;
+  ORDER_TYPE_TAKEAWAY = 2;
+  ORDER_TYPE_DELIVERY = 3;
 }
 
 // OrderStatus is the lifecycle state of an order.
 enum OrderStatus {
-  ORDER_STATUS_UNSPECIFIED     = 0;
-  ORDER_STATUS_DRAFT           = 1;
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_DRAFT = 1;
   ORDER_STATUS_PENDING_PAYMENT = 2;
-  ORDER_STATUS_PAID            = 3;
-  ORDER_STATUS_CANCELLED       = 4;
+  ORDER_STATUS_PAID = 3;
+  ORDER_STATUS_CANCELLED = 4;
 }
 
 // DiscountType is either a fixed amount or a percentage.
 enum DiscountType {
   DISCOUNT_TYPE_UNSPECIFIED = 0;
-  DISCOUNT_TYPE_FIXED       = 1;
-  DISCOUNT_TYPE_PERCENT     = 2;
+  DISCOUNT_TYPE_FIXED = 1;
+  DISCOUNT_TYPE_PERCENT = 2;
 }
 
 // ShiftStatus is the state of a cashier shift.
 enum ShiftStatus {
   SHIFT_STATUS_UNSPECIFIED = 0;
-  SHIFT_STATUS_OPEN        = 1;
-  SHIFT_STATUS_CLOSED      = 2;
+  SHIFT_STATUS_OPEN = 1;
+  SHIFT_STATUS_CLOSED = 2;
 }
 
 message OrderItemAddon {
-  string addon_id   = 1;
+  string addon_id = 1;
   string addon_name = 2;
-  int64  price      = 3;
+  int64 price = 3;
 }
 
 message OrderItem {
-  string                   id           = 1;
-  string                   product_id   = 2;
-  string                   variant_id   = 3;
-  string                   product_name = 4;
-  string                   variant_name = 5;
-  int64                    unit_price   = 6;
-  int32                    quantity     = 7;
-  int64                    subtotal     = 8;
-  string                   notes        = 9;
-  repeated OrderItemAddon  addons       = 10;
+  string id = 1;
+  string product_id = 2;
+  string variant_id = 3;
+  string product_name = 4;
+  string variant_name = 5;
+  int64 unit_price = 6;
+  int32 quantity = 7;
+  int64 subtotal = 8;
+  string notes = 9;
+  repeated OrderItemAddon addons = 10;
 }
 
 message Order {
-  string            id              = 1;
-  string            tenant_id       = 2;
-  string            branch_id       = 3;
-  string            shift_id        = 4;
-  string            cashier_id      = 5;
-  string            order_number    = 6;
-  OrderType         order_type      = 7;
-  string            table_number    = 8;
-  OrderStatus       status          = 9;
-  repeated OrderItem items          = 10;
-  int64             subtotal        = 11;
-  int64             tax_amount      = 12;
-  int64             discount_amount = 13;
-  int64             total           = 14;
-  DiscountType      discount_type   = 15;
-  int64             discount_value  = 16;
-  string            notes           = 17;
-  string            created_at      = 18;
-  string            updated_at      = 19;
+  string id = 1;
+  string tenant_id = 2;
+  string branch_id = 3;
+  string shift_id = 4;
+  string cashier_id = 5;
+  string order_number = 6;
+  OrderType order_type = 7;
+  string table_number = 8;
+  OrderStatus status = 9;
+  repeated OrderItem items = 10;
+  int64 subtotal = 11;
+  int64 tax_amount = 12;
+  int64 discount_amount = 13;
+  int64 total = 14;
+  DiscountType discount_type = 15;
+  int64 discount_value = 16;
+  string notes = 17;
+  string created_at = 18;
+  string updated_at = 19;
 }
 
 message Shift {
-  string      id           = 1;
-  string      tenant_id    = 2;
-  string      branch_id    = 3;
-  string      cashier_id   = 4;
-  ShiftStatus status       = 5;
-  string      opened_at    = 6;
-  string      closed_at    = 7;
-  int64       opening_cash = 8;
-  int64       closing_cash = 9;
+  string id = 1;
+  string tenant_id = 2;
+  string branch_id = 3;
+  string cashier_id = 4;
+  ShiftStatus status = 5;
+  string opened_at = 6;
+  string closed_at = 7;
+  int64 opening_cash = 8;
+  int64 closing_cash = 9;
 }
 
 message CreateOrderRequest {
-  string    idempotency_key = 1;
-  string    branch_id       = 2;
-  string    shift_id        = 3;
-  string    cashier_id      = 4;
-  OrderType order_type      = 5;
-  string    table_number    = 6;
-  string    notes           = 7;
+  string idempotency_key = 1;
+  string branch_id = 2;
+  string shift_id = 3;
+  string cashier_id = 4;
+  OrderType order_type = 5;
+  string table_number = 6;
+  string notes = 7;
 }
-message CreateOrderResponse { Order order = 1; }
+message CreateOrderResponse {
+  Order order = 1;
+}
 
 message AddItemRequest {
-  string                  order_id   = 1;
-  string                  product_id = 2;
-  string                  variant_id = 3;
-  int32                   quantity   = 4;
-  string                  notes      = 5;
-  repeated OrderItemAddon addons     = 6;
+  string order_id = 1;
+  string product_id = 2;
+  string variant_id = 3;
+  int32 quantity = 4;
+  string notes = 5;
+  repeated OrderItemAddon addons = 6;
 }
-message AddItemResponse { Order order = 1; }
+message AddItemResponse {
+  Order order = 1;
+}
 
-message RemoveItemRequest  { string order_id = 1; string item_id = 2; }
-message RemoveItemResponse { Order order = 1; }
+message RemoveItemRequest {
+  string order_id = 1;
+  string item_id = 2;
+}
+message RemoveItemResponse {
+  Order order = 1;
+}
 
-message UpdateItemQuantityRequest  { string order_id = 1; string item_id = 2; int32 quantity = 3; }
-message UpdateItemQuantityResponse { Order order = 1; }
+message UpdateItemQuantityRequest {
+  string order_id = 1;
+  string item_id = 2;
+  int32 quantity = 3;
+}
+message UpdateItemQuantityResponse {
+  Order order = 1;
+}
 
 message ApplyDiscountRequest {
-  string       order_id = 1;
-  DiscountType type     = 2;
-  int64        amount   = 3; // sen for fixed; basis points (1000=10%) for percent
+  string order_id = 1;
+  DiscountType type = 2;
+  int64 amount = 3; // sen for fixed; basis points (1000=10%) for percent
 }
-message ApplyDiscountResponse { Order order = 1; }
+message ApplyDiscountResponse {
+  Order order = 1;
+}
 
-message SubmitOrderRequest  { string order_id = 1; }
-message SubmitOrderResponse { Order order = 1; }
+message SubmitOrderRequest {
+  string order_id = 1;
+}
+message SubmitOrderResponse {
+  Order order = 1;
+}
 
-message CancelOrderRequest  { string order_id = 1; string reason = 2; }
+message CancelOrderRequest {
+  string order_id = 1;
+  string reason = 2;
+}
 message CancelOrderResponse {}
 
-message GetOrderRequest  { string order_id = 1; }
-message GetOrderResponse { Order order = 1; }
+message GetOrderRequest {
+  string order_id = 1;
+}
+message GetOrderResponse {
+  Order order = 1;
+}
 
 message ListOrdersRequest {
-  string                       shift_id   = 1;
-  string                       cashier_id = 2;
-  string                       branch_id  = 3;
-  OrderStatus                  status     = 4;
-  common.v1.PaginationRequest  pagination = 5;
+  string shift_id = 1;
+  string cashier_id = 2;
+  string branch_id = 3;
+  OrderStatus status = 4;
+  common.v1.PaginationRequest pagination = 5;
 }
 message ListOrdersResponse {
-  repeated Order          orders     = 1;
+  repeated Order orders = 1;
   common.v1.PaginationMeta pagination = 2;
 }
 
-message OpenShiftRequest  { string branch_id = 1; string cashier_id = 2; int64 opening_cash = 3; }
-message OpenShiftResponse { Shift shift = 1; }
+message OpenShiftRequest {
+  string branch_id = 1;
+  string cashier_id = 2;
+  int64 opening_cash = 3;
+}
+message OpenShiftResponse {
+  Shift shift = 1;
+}
 
-message CloseShiftRequest  { string shift_id = 1; int64 closing_cash = 2; }
-message CloseShiftResponse { Shift shift = 1; }
+message CloseShiftRequest {
+  string shift_id = 1;
+  int64 closing_cash = 2;
+}
+message CloseShiftResponse {
+  Shift shift = 1;
+}
 
-message GetShiftRequest  { string shift_id = 1; }
-message GetShiftResponse { Shift shift = 1; }
+message GetShiftRequest {
+  string shift_id = 1;
+}
+message GetShiftResponse {
+  Shift shift = 1;
+}
 
 // OrderService manages order lifecycle and shift management.
 service OrderService {
-  rpc CreateOrder          (CreateOrderRequest)          returns (CreateOrderResponse);
-  rpc AddItem              (AddItemRequest)              returns (AddItemResponse);
-  rpc RemoveItem           (RemoveItemRequest)           returns (RemoveItemResponse);
-  rpc UpdateItemQuantity   (UpdateItemQuantityRequest)   returns (UpdateItemQuantityResponse);
-  rpc ApplyDiscount        (ApplyDiscountRequest)        returns (ApplyDiscountResponse);
-  rpc SubmitOrder          (SubmitOrderRequest)          returns (SubmitOrderResponse);
-  rpc CancelOrder          (CancelOrderRequest)          returns (CancelOrderResponse);
-  rpc GetOrder             (GetOrderRequest)             returns (GetOrderResponse);
-  rpc ListOrders           (ListOrdersRequest)           returns (ListOrdersResponse);
-  rpc OpenShift            (OpenShiftRequest)            returns (OpenShiftResponse);
-  rpc CloseShift           (CloseShiftRequest)           returns (CloseShiftResponse);
-  rpc GetShift             (GetShiftRequest)             returns (GetShiftResponse);
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc AddItem(AddItemRequest) returns (AddItemResponse);
+  rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse);
+  rpc UpdateItemQuantity(UpdateItemQuantityRequest) returns (UpdateItemQuantityResponse);
+  rpc ApplyDiscount(ApplyDiscountRequest) returns (ApplyDiscountResponse);
+  rpc SubmitOrder(SubmitOrderRequest) returns (SubmitOrderResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc OpenShift(OpenShiftRequest) returns (OpenShiftResponse);
+  rpc CloseShift(CloseShiftRequest) returns (CloseShiftResponse);
+  rpc GetShift(GetShiftRequest) returns (GetShiftResponse);
 }
