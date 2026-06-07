@@ -59,7 +59,7 @@ func (h *TenantHandler) CreateTenant(ctx context.Context, idempotencyKey, name, 
 	result, err := h.createTenant.Handle(ctx, cmd)
 	if err != nil {
 		sharedtelemetry.RecordError(span, err)
-		return nil, sharederrors.MapToGRPCStatus(err).Err()
+		return nil, sharederrors.MapSentinelToGRPCStatus(err).Err()
 	}
 	return result, nil
 }
@@ -77,7 +77,7 @@ func (h *TenantHandler) GetTenant(ctx context.Context, tenantIDStr string) (*dom
 	result, err := h.getTenant.Handle(ctx, query.GetTenantQuery{TenantID: tenantID})
 	if err != nil {
 		sharedtelemetry.RecordError(span, err)
-		return nil, sharederrors.MapToGRPCStatus(err).Err()
+		return nil, sharederrors.MapSentinelToGRPCStatus(err).Err()
 	}
 	return result, nil
 }
@@ -98,7 +98,7 @@ func (h *TenantHandler) CreateBranch(ctx context.Context, idempotencyKey string,
 	result, err := h.createBranch.Handle(ctx, cmd)
 	if err != nil {
 		sharedtelemetry.RecordError(span, err)
-		return nil, sharederrors.MapToGRPCStatus(err).Err()
+		return nil, sharederrors.MapSentinelToGRPCStatus(err).Err()
 	}
 	return result, nil
 }
@@ -116,7 +116,7 @@ func (h *TenantHandler) ListBranches(ctx context.Context, tenantIDStr string) ([
 	result, err := h.listBranches.Handle(ctx, query.ListBranchesQuery{TenantID: tenantID})
 	if err != nil {
 		sharedtelemetry.RecordError(span, err)
-		return nil, sharederrors.MapToGRPCStatus(err).Err()
+		return nil, sharederrors.MapSentinelToGRPCStatus(err).Err()
 	}
 	return result, nil
 }
