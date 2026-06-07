@@ -1,7 +1,34 @@
 package main
 
-// TODO(Phase 3): implement pos service
-// This file is a placeholder so the Go workspace is valid.
-// See docs/phase-1/roadmap.md Phase 3 for the implementation plan.
+import (
+	"context"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
-func main() {}
+	pos "github.com/xyn-pos/services/pos"
+)
+
+func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
+	cfg, err := pos.LoadConfig()
+	if err != nil {
+		slog.Error("failed to load config", "err", err)
+		os.Exit(1)
+	}
+
+	app, err := pos.New(ctx, cfg)
+	if err != nil {
+		slog.Error("failed to initialize pos service", "err", err)
+		os.Exit(1)
+	}
+	defer app.Stop()
+
+	slog.Info("pos service starting", "port", cfg.GRPCPort)
+	if err := app.Start(); err != nil {
+		slog.Error("pos service stopped", "err", err)
+	}
+}
