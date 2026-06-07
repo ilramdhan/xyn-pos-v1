@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package common.v1;
+
+option go_package = "github.com/xyn-pos/gen/common/v1;commonv1";
+
+// Address represents a physical location.
+message Address {
+  string street      = 1;
+  string city        = 2;
+  string province    = 3;
+  string postal_code = 4;
+  string country     = 5; // ISO 3166-1 alpha-2
+}
