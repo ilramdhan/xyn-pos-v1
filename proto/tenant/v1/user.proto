@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package tenant.v1;
 
-import "google/protobuf/empty.proto";
-
 option go_package = "github.com/xyn-pos/gen/tenant/v1;tenantv1";
 
 enum Role {
@@ -43,29 +41,39 @@ message LoginResponse {
   string expires_at   = 3;
 }
 
-message RefreshTokenRequest { string paseto_token = 1; }
-message LogoutRequest       { string paseto_token = 1; }
+message RefreshTokenRequest  { string paseto_token = 1; }
+message RefreshTokenResponse {
+  string paseto_token = 1;
+  string user_id      = 2;
+  string expires_at   = 3;
+}
 
-message GetUserRequest        { string user_id = 1; }
-message GetUserResponse       { User user = 1; }
+message LogoutRequest          { string paseto_token = 1; }
+message LogoutResponse         {}
 
-message ListUsersRequest      { string tenant_id = 1; }
-message ListUsersResponse     { repeated User users = 1; }
+message GetUserRequest         { string user_id = 1; }
+message GetUserResponse        { User user = 1; }
 
-message DeactivateUserRequest { string user_id = 1; }
+message ListUsersRequest       { string tenant_id = 1; }
+message ListUsersResponse      { repeated User users = 1; }
 
-message SetPINRequest         { string user_id = 1; string pin = 2; }
-message VerifyPINRequest      { string user_id = 1; string pin = 2; }
-message VerifyPINResponse     { bool valid = 1; }
+message DeactivateUserRequest  { string user_id = 1; }
+message DeactivateUserResponse {}
+
+message SetPINRequest          { string user_id = 1; string pin = 2; }
+message SetPINResponse         {}
+
+message VerifyPINRequest       { string user_id = 1; string pin = 2; }
+message VerifyPINResponse      { bool valid = 1; }
 
 service UserService {
   rpc RegisterUser(RegisterUserRequest)     returns (RegisterUserResponse);
   rpc Login(LoginRequest)                   returns (LoginResponse);
-  rpc RefreshToken(RefreshTokenRequest)     returns (LoginResponse);
-  rpc Logout(LogoutRequest)                 returns (google.protobuf.Empty);
+  rpc RefreshToken(RefreshTokenRequest)     returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest)                 returns (LogoutResponse);
   rpc GetUser(GetUserRequest)               returns (GetUserResponse);
   rpc ListUsers(ListUsersRequest)           returns (ListUsersResponse);
-  rpc DeactivateUser(DeactivateUserRequest) returns (google.protobuf.Empty);
-  rpc SetPIN(SetPINRequest)                 returns (google.protobuf.Empty);
+  rpc DeactivateUser(DeactivateUserRequest) returns (DeactivateUserResponse);
+  rpc SetPIN(SetPINRequest)                 returns (SetPINResponse);
   rpc VerifyPIN(VerifyPINRequest)           returns (VerifyPINResponse);
 }

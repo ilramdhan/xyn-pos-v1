@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	tenantv1 "github.com/xyn-pos/gen/tenant/v1"
 	"github.com/xyn-pos/services/tenant/internal/application/command"
@@ -94,11 +93,11 @@ func (h *UserHandler) Login(ctx context.Context, req *tenantv1.LoginRequest) (*t
 }
 
 // Logout blacklists the PASETO token's JTI to revoke it.
-func (h *UserHandler) Logout(ctx context.Context, req *tenantv1.LogoutRequest) (*emptypb.Empty, error) {
+func (h *UserHandler) Logout(ctx context.Context, req *tenantv1.LogoutRequest) (*tenantv1.LogoutResponse, error) {
 	if err := h.logoutH.Handle(ctx, command.LogoutInput{PASETOToken: req.PasetoToken}); err != nil {
 		return nil, status.Error(codes.Internal, "logout failed")
 	}
-	return &emptypb.Empty{}, nil
+	return &tenantv1.LogoutResponse{}, nil
 }
 
 // GetUser retrieves a single user by ID. Enforces cross-tenant isolation.
@@ -139,7 +138,7 @@ func (h *UserHandler) ListUsers(ctx context.Context, _ *tenantv1.ListUsersReques
 }
 
 // DeactivateUser soft-deletes a user. Only the owner role may call this.
-func (h *UserHandler) DeactivateUser(ctx context.Context, req *tenantv1.DeactivateUserRequest) (*emptypb.Empty, error) {
+func (h *UserHandler) DeactivateUser(ctx context.Context, req *tenantv1.DeactivateUserRequest) (*tenantv1.DeactivateUserResponse, error) {
 	claims, err := extractClaimsFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "missing auth context")
@@ -154,12 +153,12 @@ func (h *UserHandler) DeactivateUser(ctx context.Context, req *tenantv1.Deactiva
 	}); err != nil {
 		return nil, mapUserError(err)
 	}
-	return &emptypb.Empty{}, nil
+	return &tenantv1.DeactivateUserResponse{}, nil
 }
 
 // SetPIN stores a bcrypt-hashed PIN for fast cashier login.
 // Only the target user themselves, or an owner/manager in the same tenant, may set a PIN.
-func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (*emptypb.Empty, error) {
+func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (*tenantv1.SetPINResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user_id")
@@ -182,7 +181,7 @@ func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (
 	if err := h.setPINH.Handle(ctx, command.SetPINInput{UserID: userID, PIN: req.Pin}); err != nil {
 		return nil, mapUserError(err)
 	}
-	return &emptypb.Empty{}, nil
+	return &tenantv1.SetPINResponse{}, nil
 }
 
 // VerifyPIN checks a PIN against the stored bcrypt hash. Callers may only verify their own PIN.
@@ -206,7 +205,7 @@ func (h *UserHandler) VerifyPIN(ctx context.Context, req *tenantv1.VerifyPINRequ
 }
 
 // RefreshToken is not yet implemented.
-func (h *UserHandler) RefreshToken(_ context.Context, _ *tenantv1.RefreshTokenRequest) (*tenantv1.LoginResponse, error) {
+func (h *UserHandler) RefreshToken(_ context.Context, _ *tenantv1.RefreshTokenRequest) (*tenantv1.RefreshTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "RefreshToken not yet implemented")
 }
 

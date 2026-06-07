@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	inventoryv1 "github.com/xyn-pos/gen/go/inventory/v1"
+	inventoryv1 "github.com/xyn-pos/gen/inventory/v1"
 	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 	"github.com/xyn-pos/shared/pkg/middleware"
 )

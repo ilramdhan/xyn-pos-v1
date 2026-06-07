@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	paymentv1 "github.com/xyn-pos/gen/go/payment/v1"
+	paymentv1 "github.com/xyn-pos/gen/payment/v1"
 	"github.com/xyn-pos/services/payment/internal/application/command"
 	"github.com/xyn-pos/services/payment/internal/application/query"
 	"github.com/xyn-pos/services/payment/internal/domain/payment"

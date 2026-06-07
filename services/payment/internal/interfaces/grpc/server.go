@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	paymentv1 "github.com/xyn-pos/gen/go/payment/v1"
+	paymentv1 "github.com/xyn-pos/gen/payment/v1"
 	sharedauth "github.com/xyn-pos/shared/pkg/auth"
 	"github.com/xyn-pos/shared/pkg/middleware"
 )

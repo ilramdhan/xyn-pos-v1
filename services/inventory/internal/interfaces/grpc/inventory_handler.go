@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	inventoryv1 "github.com/xyn-pos/gen/go/inventory/v1"
+	inventoryv1 "github.com/xyn-pos/gen/inventory/v1"
 	"github.com/xyn-pos/services/inventory/internal/application/command"
 	"github.com/xyn-pos/services/inventory/internal/application/query"
 	"github.com/xyn-pos/services/inventory/internal/domain/stock"
