@@ -4,6 +4,8 @@ go 1.26
 
 replace github.com/xyn-pos/shared => ../../shared/go
 
+replace github.com/xyn-pos/gen => ../../gen
+
 require (
 	aidanwoods.dev/go-paseto v1.5.3
 	github.com/google/uuid v1.6.0
@@ -11,6 +13,7 @@ require (
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.42.0
+	github.com/xyn-pos/gen v0.0.0-00010101000000-000000000000
 	github.com/xyn-pos/shared v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
