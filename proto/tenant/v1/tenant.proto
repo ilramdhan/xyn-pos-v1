@@ -3,6 +3,7 @@ syntax = "proto3";
 package tenant.v1;
 
 import "common/v1/address.proto";
+import "common/v1/pagination.proto";
 
 option go_package = "github.com/xyn-pos/gen/tenant/v1;tenantv1";
 
@@ -67,7 +68,8 @@ message CreateBranchRequest {
 }
 
 message ListBranchesRequest {
-  string tenant_id = 1;
+  string                    tenant_id  = 1;
+  common.v1.PaginationRequest pagination = 2;
 }
 
 // --- Responses ---
@@ -85,7 +87,8 @@ message CreateBranchResponse {
 }
 
 message ListBranchesResponse {
-  repeated Branch branches = 1;
+  repeated Branch           branches   = 1;
+  common.v1.PaginationMeta  pagination = 2;
 }
 
 // TenantService manages tenant lifecycle and branch management.
