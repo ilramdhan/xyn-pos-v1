@@ -5,6 +5,7 @@ go 1.26
 replace github.com/xyn-pos/shared => ../../shared/go
 
 require (
+	aidanwoods.dev/go-paseto v1.5.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/pressly/goose/v3 v3.27.1
@@ -13,11 +14,11 @@ require (
 	github.com/xyn-pos/shared v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
+	golang.org/x/crypto v0.52.0
 	google.golang.org/grpc v1.81.1
 )
 
 require (
-	aidanwoods.dev/go-paseto v1.5.3 // indirect
 	aidanwoods.dev/go-result v0.1.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
@@ -81,7 +82,6 @@ require (
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
