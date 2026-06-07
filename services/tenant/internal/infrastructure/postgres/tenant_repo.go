@@ -123,35 +123,40 @@ func (r *TenantRepository) ExistsBySlug(ctx context.Context, slug string) (bool,
 }
 
 // ListBranches returns all branches for a tenant, ordered by creation time.
+// The query runs inside a transaction so SET LOCAL takes effect for the branches RLS policy.
 func (r *TenantRepository) ListBranches(ctx context.Context, tenantID uuid.UUID) ([]domain.Branch, error) {
 	ctx, span := r.tracer.Start(ctx, "TenantRepository.ListBranches")
 	defer span.End()
 
-	rows, err := r.pool.Query(ctx, `
-		SELECT id, tenant_id, name, street, city, province, postal_code, country, timezone, is_active, created_at, updated_at
-		FROM branches WHERE tenant_id = $1 ORDER BY created_at ASC
-	`, tenantID)
+	var branches []domain.Branch
+
+	err := shareddb.WithTenantTx(ctx, r.pool, tenantID, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `
+			SELECT id, tenant_id, name, street, city, province, postal_code, country, timezone, is_active, created_at, updated_at
+			FROM branches WHERE tenant_id = $1 ORDER BY created_at ASC
+		`, tenantID)
+		if err != nil {
+			return fmt.Errorf("TenantRepository.ListBranches: %w", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var b domain.Branch
+			var updatedAt time.Time
+			if err := rows.Scan(
+				&b.ID, &b.TenantID, &b.Name,
+				&b.Address.Street, &b.Address.City, &b.Address.Province, &b.Address.PostalCode, &b.Address.Country,
+				&b.Timezone, &b.IsActive, &b.CreatedAt, &updatedAt,
+			); err != nil {
+				return fmt.Errorf("TenantRepository.ListBranches scan: %w", err)
+			}
+			b.UpdatedAt = updatedAt
+			branches = append(branches, b)
+		}
+		return rows.Err()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("TenantRepository.ListBranches: %w", err)
-	}
-	defer rows.Close()
-
-	var branches []domain.Branch
-	for rows.Next() {
-		var b domain.Branch
-		var updatedAt time.Time
-		if err := rows.Scan(
-			&b.ID, &b.TenantID, &b.Name,
-			&b.Address.Street, &b.Address.City, &b.Address.Province, &b.Address.PostalCode, &b.Address.Country,
-			&b.Timezone, &b.IsActive, &b.CreatedAt, &updatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("TenantRepository.ListBranches scan: %w", err)
-		}
-		b.UpdatedAt = updatedAt
-		branches = append(branches, b)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("TenantRepository.ListBranches rows: %w", err)
 	}
 	return branches, nil
 }

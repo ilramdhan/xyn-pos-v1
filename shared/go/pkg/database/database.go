@@ -57,7 +57,8 @@ func WithTenantTx(ctx context.Context, pool *pgxpool.Pool, tenantID uuid.UUID, f
 		}
 	}()
 
-	if _, err = tx.Exec(ctx, "SET LOCAL app.current_tenant_id = $1", tenantID.String()); err != nil {
+	// set_config with is_local=true is equivalent to SET LOCAL and supports $1 parameters.
+	if _, err = tx.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, true)", tenantID.String()); err != nil {
 		return fmt.Errorf("database.WithTenantTx set tenant: %w", err)
 	}
 

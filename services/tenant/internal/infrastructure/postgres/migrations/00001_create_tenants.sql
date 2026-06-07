@@ -15,11 +15,21 @@ CREATE TABLE IF NOT EXISTS tenants (
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY tenants_isolation ON tenants
-    USING (id = current_setting('app.current_tenant_id', TRUE)::UUID);
+-- Tenants is a global registry: any app role may read all rows
+-- (slug uniqueness checks and cross-tenant lookups require unrestricted SELECT).
+CREATE POLICY tenants_select ON tenants
+    FOR SELECT USING (TRUE);
 
+-- Registration: any app role may insert a new tenant row.
 CREATE POLICY tenants_insert ON tenants
     FOR INSERT WITH CHECK (TRUE);
+
+-- A tenant may only update or delete its own row.
+CREATE POLICY tenants_self_update ON tenants
+    FOR UPDATE USING (id = current_setting('app.current_tenant_id', TRUE)::UUID);
+
+CREATE POLICY tenants_self_delete ON tenants
+    FOR DELETE USING (id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 CREATE INDEX IF NOT EXISTS tenants_slug_idx ON tenants (slug);
 -- +goose StatementEnd
