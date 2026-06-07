@@ -37,12 +37,14 @@ bin/
 *.out
 coverage.out
 coverage.html
-go.work.sum
 
 # ─────────────────────────────────────────────────────────
 # Generated code — regenerate with `make proto-gen`
 # ─────────────────────────────────────────────────────────
-gen/
+# Ignore everything inside gen/ except the module definition files
+gen/**
+!gen/go.mod
+!gen/go.sum
 
 # ─────────────────────────────────────────────────────────
 # Node / Next.js

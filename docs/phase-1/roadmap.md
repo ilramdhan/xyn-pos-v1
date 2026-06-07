@@ -12,8 +12,8 @@
 |---|---|---|---|
 | Phase 1 | Architecture & Blueprinting | ✅ Done | 1–2 weeks |
 | Phase 2 | Environment & Infrastructure Setup | ✅ Done | 1–2 weeks |
-| Phase 3 | Core Domain & Microservices Boilerplate | 🔲 Next | 2–3 weeks |
-| Phase 4 | Backend MVP Implementation | ⬜ Planned | 6–8 weeks |
+| Phase 3 | Core Domain & Microservices Boilerplate | ✅ Done | 2–3 weeks |
+| Phase 4 | Backend MVP Implementation | 🔲 Next | 6–8 weeks |
 | Phase 5 | Frontend Web & Mobile Implementation | ⬜ Planned | 6–8 weeks |
 | Phase 6 | Advanced Features & DevOps | ⬜ Planned | Ongoing |
 
@@ -113,49 +113,49 @@
 
 ### Epic 3.1: Shared Go Packages
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 3.1.1 | Error handling package | `shared/go/pkg/errors`: domain errors, oops wrapper, gRPC error helpers | 🔴 High |
-| 3.1.2 | Logger package | `shared/go/pkg/logger`: slog structured logger, context extraction | 🔴 High |
-| 3.1.3 | Auth package | `shared/go/pkg/auth`: PASETO token generation/verification, claims struct | 🔴 High |
-| 3.1.4 | Database package | `shared/go/pkg/database`: pgxpool factory, tenant context helper | 🔴 High |
-| 3.1.5 | Telemetry package | `shared/go/pkg/telemetry`: OpenTelemetry setup, span helpers | 🟡 Medium |
-| 3.1.6 | Events package | `shared/go/pkg/events`: Kafka producer/consumer factory | 🟡 Medium |
-| 3.1.7 | Middleware package | `shared/go/pkg/middleware`: gRPC interceptors (auth, logging, tracing, recovery) | 🔴 High |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 3.1.1 | Error handling package | `shared/go/pkg/errors`: domain errors, oops wrapper, gRPC error helpers | 🔴 High | ✅ Done |
+| 3.1.2 | Logger package | `shared/go/pkg/logger`: slog structured logger, context extraction | 🔴 High | ✅ Done |
+| 3.1.3 | Auth package | `shared/go/pkg/auth`: PASETO token generation/verification, claims struct | 🔴 High | ✅ Done |
+| 3.1.4 | Database package | `shared/go/pkg/database`: pgxpool factory, tenant context helper (set_config RLS) | 🔴 High | ✅ Done |
+| 3.1.5 | Telemetry package | `shared/go/pkg/telemetry`: OpenTelemetry setup, span helpers | 🟡 Medium | ✅ Done |
+| 3.1.6 | Events package | `shared/go/pkg/events`: Kafka publisher (franz-go) + NoopPublisher | 🟡 Medium | ✅ Done |
+| 3.1.7 | Middleware package | `shared/go/pkg/middleware`: gRPC interceptors (auth, logging, tracing, recovery) | 🔴 High | ✅ Done |
 
 ### Epic 3.2: Common Proto Definitions
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 3.2.1 | Common types proto | `Money`, `Pagination`, `PaginationMeta`, `Address` | 🔴 High |
-| 3.2.2 | Error details proto | Standard error structures | 🔴 High |
-| 3.2.3 | Generate Go + TS + Dart code | Configure buf.gen.yaml, run generation, commit generated code | 🔴 High |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 3.2.1 | Common types proto | `Money`, `Pagination`, `PaginationMeta`, `Address` | 🔴 High | ✅ Done |
+| 3.2.2 | Error details proto | Standard error structures | 🔴 High | ✅ Done |
+| 3.2.3 | Generate Go + TS + Dart code | Configure buf.gen.yaml, run generation, commit generated code | 🔴 High | ✅ Done |
 
 ### Epic 3.3: First Microservice — Tenant Service (Boilerplate)
 
 Use the Tenant service as the template — all other services follow this pattern.
 
-| # | Story | Tasks | Priority |
-|---|---|---|---|
-| 3.3.1 | Tenant domain model | `Tenant` aggregate, `Branch` entity, value objects, domain events | 🔴 High |
-| 3.3.2 | Tenant repository interface | Port definition in domain layer | 🔴 High |
-| 3.3.3 | Tenant use cases | `CreateTenant`, `CreateBranch`, `GetTenant` command/query handlers | 🔴 High |
-| 3.3.4 | PostgreSQL repository | Implement repository with pgx, goose migrations | 🔴 High |
-| 3.3.5 | gRPC handler | Translate proto ↔ domain, call application layer | 🔴 High |
-| 3.3.6 | Manual DI wiring | Write `provider.go` with constructor chaining (see ADR-0001) | 🔴 High |
-| 3.3.7 | Dockerfile | Multi-stage build, distroless runtime | 🟡 Medium |
-| 3.3.8 | Unit tests for domain | Table-driven tests for aggregate behavior | 🔴 High |
-| 3.3.9 | Integration tests | Testcontainers PostgreSQL, test real repository | 🟡 Medium |
-| 3.3.10 | Goose migrations | Initial schema, RLS policies | 🔴 High |
+| # | Story | Tasks | Priority | Status |
+|---|---|---|---|---|
+| 3.3.1 | Tenant domain model | `Tenant` aggregate, `Branch` entity, value objects, domain events | 🔴 High | ✅ Done |
+| 3.3.2 | Tenant repository interface | Port definition in domain layer | 🔴 High | ✅ Done |
+| 3.3.3 | Tenant use cases | `CreateTenant`, `CreateBranch`, `GetTenant`, `ListBranches` handlers | 🔴 High | ✅ Done |
+| 3.3.4 | PostgreSQL repository | Implement repository with pgx, goose migrations, RLS-aware queries | 🔴 High | ✅ Done |
+| 3.3.5 | gRPC handler | Translate proto ↔ domain, call application layer | 🔴 High | ✅ Done |
+| 3.3.6 | Manual DI wiring | Write `provider.go` with constructor chaining | 🔴 High | ✅ Done |
+| 3.3.7 | Dockerfile | Multi-stage build, distroless runtime | 🟡 Medium | ✅ Done |
+| 3.3.8 | Unit tests for domain + application | Domain aggregate (10 tests) + all command/query handlers | 🔴 High | ✅ Done |
+| 3.3.9 | Integration tests | 11 tests against real PostgreSQL 18 via testcontainers-go v0.42.0 | 🟡 Medium | ✅ Done |
+| 3.3.10 | Goose migrations | Initial schema, correct per-command RLS policies | 🔴 High | ✅ Done |
 
 ### Epic 3.4: Database Infrastructure
 
 | # | Story | Tasks | Priority | Status |
 |---|---|---|---|---|
-| 3.4.1 | PostgreSQL schema design | Run through ERD from architecture.md, finalize all tables | 🔴 High | ⬜ Planned |
-| 3.4.2 | RLS policy templates | `enable_rls.sql` template function for all tables | 🔴 High | ⬜ Planned |
+| 3.4.1 | PostgreSQL schema design | Tenant service: tenants + branches + idempotency_keys tables | 🔴 High | ✅ Done |
+| 3.4.2 | RLS policy templates | Separate SELECT/INSERT/UPDATE/DELETE policies per table | 🔴 High | ✅ Done |
 | 3.4.3 | PgBouncer config | Docker Compose + K8s deployment | 🟡 Medium | ✅ Done (early) |
-| 3.4.4 | Redis setup | Redis Cluster config for local dev | 🟡 Medium | ⬜ Planned |
+| 3.4.4 | Redis setup | Redis Cluster config for local dev | 🟡 Medium | ⬜ Phase 4 |
 | 3.4.5 | ClickHouse setup | Docker Compose + K8s + initial CDC schema + materialized views | 🟢 Low | ✅ Done (early) |
 
 ---

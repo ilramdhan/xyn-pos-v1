@@ -6,7 +6,7 @@ option go_package = "github.com/xyn-pos/gen/common/v1;commonv1";
 
 // FieldViolation — validation error on a specific field
 message FieldViolation {
-  string field   = 1;
+  string field = 1;
   string message = 2;
 }
 
