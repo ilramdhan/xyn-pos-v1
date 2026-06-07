@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -53,6 +54,19 @@ func tenantIDFromContext(ctx context.Context) (uuid.UUID, error) {
 		return uuid.Nil, errors.New("missing auth context")
 	}
 	return claims.TenantID, nil
+}
+
+// requireBranchAccess enforces that the caller may access branchID.
+// Owners and managers may access any branch in their tenant.
+// Cashiers and kitchen staff are restricted to branches listed in their JWT BranchScope.
+func requireBranchAccess(claims *sharedauth.Claims, branchID uuid.UUID) error {
+	if claims.Role == "owner" || claims.Role == "manager" {
+		return nil
+	}
+	if slices.Contains(claims.BranchScope, branchID) {
+		return nil
+	}
+	return status.Error(codes.PermissionDenied, "access to this branch is not permitted")
 }
 
 // GetStock retrieves the current stock level for a product/variant at a branch.
@@ -114,6 +128,12 @@ func (h *InventoryHandler) AdjustStock(ctx context.Context, req *inventoryv1.Adj
 	branchID, err := uuid.Parse(req.BranchId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid branch_id")
+	}
+	// Cashiers and kitchen staff are restricted to their assigned branches.
+	if claims, ok := claimsFromContext(ctx); ok {
+		if err := requireBranchAccess(claims, branchID); err != nil {
+			return nil, err
+		}
 	}
 	productID, err := uuid.Parse(req.ProductId)
 	if err != nil {

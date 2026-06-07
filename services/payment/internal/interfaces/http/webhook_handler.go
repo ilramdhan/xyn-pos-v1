@@ -86,12 +86,8 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // verifySignature checks the Midtrans webhook signature using constant-time comparison.
-// In dev/test mode (serverKey == ""), verification is skipped.
+// sha512(order_id + status_code + gross_amount + server_key) must match the notification's signature_key.
 func (h *WebhookHandler) verifySignature(notif midtransNotification) bool {
-	if h.serverKey == "" {
-		// Dev/test mode: skip verification
-		return true
-	}
 	plain := notif.OrderID + notif.StatusCode + notif.GrossAmount + h.serverKey
 	sum := sha512.Sum512([]byte(plain))
 	expected := hex.EncodeToString(sum[:])

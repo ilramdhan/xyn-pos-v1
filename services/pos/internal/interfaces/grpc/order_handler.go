@@ -104,10 +104,31 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *posv1.CreateOrderRe
 	return &posv1.CreateOrderResponse{Order: domainOrderToProto(o)}, nil
 }
 
+// assertOrderTenant loads the order and verifies the caller's tenant matches.
+// Returns nil in dev mode (no claims in context). Uses codes.NotFound on mismatch
+// to avoid leaking existence of orders belonging to other tenants.
+func (h *OrderHandler) assertOrderTenant(ctx context.Context, orderID uuid.UUID) error {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil
+	}
+	o, err := h.getOrderH.Handle(ctx, orderID)
+	if err != nil {
+		return mapOrderError(err)
+	}
+	if o.TenantID != claims.TenantID {
+		return status.Error(codes.NotFound, "order not found")
+	}
+	return nil
+}
+
 func (h *OrderHandler) AddItem(ctx context.Context, req *posv1.AddItemRequest) (*posv1.AddItemResponse, error) {
 	orderID, err := uuid.Parse(req.OrderId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
 	}
 	productID, err := uuid.Parse(req.ProductId)
 	if err != nil {
@@ -142,6 +163,9 @@ func (h *OrderHandler) RemoveItem(ctx context.Context, req *posv1.RemoveItemRequ
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
 	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
+	}
 	itemID, err := uuid.Parse(req.ItemId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid item_id")
@@ -157,6 +181,9 @@ func (h *OrderHandler) UpdateItemQuantity(ctx context.Context, req *posv1.Update
 	orderID, err := uuid.Parse(req.OrderId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
 	}
 	itemID, err := uuid.Parse(req.ItemId)
 	if err != nil {
@@ -176,6 +203,9 @@ func (h *OrderHandler) ApplyDiscount(ctx context.Context, req *posv1.ApplyDiscou
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
 	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
+	}
 	o, err := h.applyDiscountH.Handle(ctx, command.ApplyDiscountInput{
 		OrderID:      orderID,
 		DiscountType: protoDiscountTypeToDomain(req.Type),
@@ -192,6 +222,9 @@ func (h *OrderHandler) SubmitOrder(ctx context.Context, req *posv1.SubmitOrderRe
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
 	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
+	}
 	o, err := h.submitOrderH.Handle(ctx, orderID)
 	if err != nil {
 		return nil, mapOrderError(err)
@@ -203,6 +236,9 @@ func (h *OrderHandler) CancelOrder(ctx context.Context, req *posv1.CancelOrderRe
 	orderID, err := uuid.Parse(req.OrderId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
 	}
 	if err := h.cancelOrderH.Handle(ctx, orderID, req.Reason); err != nil {
 		return nil, mapOrderError(err)
