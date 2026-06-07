@@ -6,13 +6,13 @@ go 1.26
 // Docs: https://go.dev/ref/mod#go-work-file
 
 use (
-    ./gen
-    ./shared/go
-    ./services/tenant
-    ./services/pos
-    ./services/payment
-    ./services/inventory
-    ./services/kitchen
-    ./services/analytics
-    ./services/marketing
+	./gen
+	./services/analytics
+	./services/inventory
+	./services/kitchen
+	./services/marketing
+	./services/payment
+	./services/pos
+	./services/tenant
+	./shared/go
 )
