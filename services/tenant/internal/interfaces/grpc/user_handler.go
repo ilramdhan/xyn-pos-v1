@@ -158,7 +158,7 @@ func (h *UserHandler) DeactivateUser(ctx context.Context, req *tenantv1.Deactiva
 }
 
 // SetPIN stores a bcrypt-hashed PIN for fast cashier login.
-// Only the target user themselves, or an owner/manager, may set a PIN.
+// Only the target user themselves, or an owner/manager in the same tenant, may set a PIN.
 func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (*emptypb.Empty, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
@@ -167,6 +167,14 @@ func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (
 	claims, err := extractClaimsFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "missing auth context")
+	}
+	// Load target user to verify same-tenant membership before any role check.
+	target, err := h.getUserH.Handle(ctx, userID)
+	if err != nil {
+		return nil, mapUserError(err)
+	}
+	if target.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 	if claims.UserID != userID && claims.Role != string(user.RoleOwner) && claims.Role != string(user.RoleManager) {
 		return nil, status.Error(codes.PermissionDenied, "cannot set PIN for another user")
