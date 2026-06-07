@@ -13,8 +13,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.42.0
 	github.com/twmb/franz-go v1.21.3
-	github.com/xyn-pos/gen v0.0.0-00010101000000-000000000000
-	github.com/xyn-pos/shared v0.0.0-00010101000000-000000000000
+	github.com/xyn-pos/gen v0.0.0
+	github.com/xyn-pos/shared v0.0.0
 	google.golang.org/grpc v1.81.1
 )
 
