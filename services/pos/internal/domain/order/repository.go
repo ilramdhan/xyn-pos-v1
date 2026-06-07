@@ -21,6 +21,9 @@ type OrderRepository interface {
 	FindByFilter(ctx context.Context, tenantID uuid.UUID, filter OrderFilter) ([]*Order, int, error)
 	Save(ctx context.Context, o *Order) error
 	Update(ctx context.Context, o *Order) error
+	AddOrderItem(ctx context.Context, item OrderItem) error
+	RemoveOrderItem(ctx context.Context, itemID uuid.UUID) error
+	UpdateOrderItemQuantity(ctx context.Context, itemID uuid.UUID, qty int, subtotal int64) error
 }
 
 type ShiftRepository interface {
