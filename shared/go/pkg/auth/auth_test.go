@@ -60,3 +60,47 @@ func TestVerify_InvalidKey(t *testing.T) {
 	_, err := sharedauth.NewLocalVerifier("not-a-valid-hex-key")
 	assert.Error(t, err)
 }
+
+func TestIssuer_Issue_ContainsJTI(t *testing.T) {
+	keyHex := "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+	issuer, err := sharedauth.NewLocalIssuer(keyHex)
+	require.NoError(t, err)
+
+	claims := sharedauth.Claims{
+		TenantID: uuid.New(),
+		UserID:   uuid.New(),
+		Role:     "cashier",
+		Email:    "ani@example.com",
+		JTI:      "unique-jti-123",
+	}
+	token, err := issuer.Issue(claims, 8*time.Hour)
+	require.NoError(t, err)
+	assert.NotEmpty(t, token)
+
+	verify, _ := sharedauth.NewLocalVerifier(keyHex)
+	parsed, err := verify(token)
+	require.NoError(t, err)
+	assert.Equal(t, "unique-jti-123", parsed.JTI)
+	assert.Equal(t, "cashier", parsed.Role)
+}
+
+func TestIssuer_Issue_WithBranchScope(t *testing.T) {
+	keyHex := "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+	issuer, _ := sharedauth.NewLocalIssuer(keyHex)
+	branch1, branch2 := uuid.New(), uuid.New()
+
+	claims := sharedauth.Claims{
+		TenantID:    uuid.New(),
+		UserID:      uuid.New(),
+		Role:        "cashier",
+		BranchScope: []uuid.UUID{branch1, branch2},
+		JTI:         "jti-scope-test",
+	}
+	token, err := issuer.Issue(claims, time.Hour)
+	require.NoError(t, err)
+
+	verify, _ := sharedauth.NewLocalVerifier(keyHex)
+	parsed, err := verify(token)
+	require.NoError(t, err)
+	assert.Equal(t, []uuid.UUID{branch1, branch2}, parsed.BranchScope)
+}
