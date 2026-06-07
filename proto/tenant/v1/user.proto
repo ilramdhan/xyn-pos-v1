@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package tenant.v1;
+
+option go_package = "github.com/xyn-pos/gen/tenant/v1;tenantv1";
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_OWNER = 1;
+  ROLE_MANAGER = 2;
+  ROLE_CASHIER = 3;
+  ROLE_KITCHEN_STAFF = 4;
+}
+
+message User {
+  string id = 1;
+  string tenant_id = 2;
+  string email = 3;
+  string full_name = 4;
+  Role role = 5;
+  repeated string branch_scope = 6;
+  bool is_active = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message RegisterUserRequest {
+  string idempotency_key = 1;
+  string email = 2;
+  string password = 3;
+  string full_name = 4;
+  Role role = 5;
+  repeated string branch_scope = 6;
+}
+message RegisterUserResponse {
+  User user = 1;
+}
+
+message LoginRequest {
+  string keycloak_token = 1;
+}
+message LoginResponse {
+  string paseto_token = 1;
+  string user_id = 2;
+  string expires_at = 3;
+}
+
+message RefreshTokenRequest {
+  string paseto_token = 1;
+}
+message RefreshTokenResponse {
+  string paseto_token = 1;
+  string user_id = 2;
+  string expires_at = 3;
+}
+
+message LogoutRequest {
+  string paseto_token = 1;
+}
+message LogoutResponse {}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+message GetUserResponse {
+  User user = 1;
+}
+
+message ListUsersRequest {
+  string tenant_id = 1;
+}
+message ListUsersResponse {
+  repeated User users = 1;
+}
+
+message DeactivateUserRequest {
+  string user_id = 1;
+}
+message DeactivateUserResponse {}
+
+message SetPINRequest {
+  string user_id = 1;
+  string pin = 2;
+}
+message SetPINResponse {}
+
+message VerifyPINRequest {
+  string user_id = 1;
+  string pin = 2;
+}
+message VerifyPINResponse {
+  bool valid = 1;
+}
+
+service UserService {
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc DeactivateUser(DeactivateUserRequest) returns (DeactivateUserResponse);
+  rpc SetPIN(SetPINRequest) returns (SetPINResponse);
+  rpc VerifyPIN(VerifyPINRequest) returns (VerifyPINResponse);
+}

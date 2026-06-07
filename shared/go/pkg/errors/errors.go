@@ -34,9 +34,9 @@ func New(msg string) error {
 	return fmt.Errorf("%s", msg)
 }
 
-// MapToGRPCStatus maps a domain error to a gRPC status.
+// MapSentinelToGRPCStatus maps a domain sentinel error to a gRPC status.
 // Uses errors.Is to walk the error chain.
-func MapToGRPCStatus(err error) *status.Status {
+func MapSentinelToGRPCStatus(err error) *status.Status {
 	if err == nil {
 		return status.New(codes.OK, "")
 	}

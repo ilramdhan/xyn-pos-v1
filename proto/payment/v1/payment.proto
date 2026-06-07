@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "github.com/xyn-pos/gen/payment/v1;paymentv1";
+
+// PaymentStatus is the lifecycle state of a payment.
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_SUCCESS = 2;
+  PAYMENT_STATUS_FAILED = 3;
+  PAYMENT_STATUS_VOIDED = 4;
+}
+
+// PaymentMethod is how the customer paid.
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_QRIS = 1;
+  PAYMENT_METHOD_BANK_TRANSFER = 2;
+  PAYMENT_METHOD_CREDIT_CARD = 3;
+  PAYMENT_METHOD_CASH = 4;
+}
+
+message Payment {
+  string id = 1;
+  string tenant_id = 2;
+  string order_id = 3;
+  int64 amount = 4;
+  PaymentStatus status = 5;
+  PaymentMethod method = 6;
+  string external_id = 7;
+  string snap_token = 8;
+  string snap_redirect_url = 9;
+  string idempotency_key = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message InitiatePaymentRequest {
+  string idempotency_key = 1;
+  string order_id = 2;
+  int64 amount = 3;
+  PaymentMethod method = 4;
+  string customer_name = 5;
+  string customer_email = 6;
+}
+message InitiatePaymentResponse {
+  Payment payment = 1;
+}
+
+message VoidPaymentRequest {
+  string payment_id = 1;
+  string reason = 2;
+}
+message VoidPaymentResponse {}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+message GetPaymentResponse {
+  Payment payment = 1;
+}
+
+message GetPaymentByOrderRequest {
+  string order_id = 1;
+}
+message GetPaymentByOrderResponse {
+  Payment payment = 1;
+}
+
+// PaymentService handles payment lifecycle.
+service PaymentService {
+  rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
+  rpc VoidPayment(VoidPaymentRequest) returns (VoidPaymentResponse);
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
+  rpc GetPaymentByOrder(GetPaymentByOrderRequest) returns (GetPaymentByOrderResponse);
+}

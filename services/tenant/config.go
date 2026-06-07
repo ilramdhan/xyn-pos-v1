@@ -16,7 +16,20 @@ type Config struct {
 	GRPCPort     int
 	OTLPEndpoint string
 
-	PASETOKey string // hex-encoded symmetric key for PASETO v4
+	// Redis
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
+
+	// Keycloak
+	KeycloakBaseURL      string
+	KeycloakRealm        string
+	KeycloakClientID     string
+	KeycloakClientSecret string
+	KeycloakAdminToken   string
+
+	// PASETOKeyHex is the hex-encoded 32-byte symmetric key for PASETO v4 local tokens.
+	PASETOKeyHex string
 }
 
 // LoadConfig reads configuration from environment variables.
@@ -27,7 +40,18 @@ func LoadConfig() (*Config, error) {
 		Version:      getEnv("SERVICE_VERSION", "0.0.1"),
 		Env:          getEnv("ENVIRONMENT", "dev"),
 		OTLPEndpoint: getEnv("OTLP_ENDPOINT", "localhost:4317"),
-		PASETOKey:    getEnv("PASETO_KEY", ""),
+
+		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
+		RedisDB:       0,
+
+		KeycloakBaseURL:      getEnv("KEYCLOAK_BASE_URL", "http://localhost:8080"),
+		KeycloakRealm:        getEnv("KEYCLOAK_REALM", "xyn-pos"),
+		KeycloakClientID:     getEnv("KEYCLOAK_CLIENT_ID", "xyn-backend"),
+		KeycloakClientSecret: getEnv("KEYCLOAK_CLIENT_SECRET", ""),
+		KeycloakAdminToken:   getEnv("KEYCLOAK_ADMIN_TOKEN", ""),
+
+		PASETOKeyHex: getEnv("PASETO_KEY_HEX", ""),
 	}
 
 	dbURL := os.Getenv("DATABASE_URL")
