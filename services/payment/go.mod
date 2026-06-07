@@ -2,5 +2,7 @@ module github.com/xyn-pos/services/payment
 
 go 1.26
 
-require github.com/xyn-pos/shared v0.0.0
-replace github.com/xyn-pos/shared => ../../shared/go
+replace (
+	github.com/xyn-pos/gen => ../../gen
+	github.com/xyn-pos/shared => ../../shared/go
+)
