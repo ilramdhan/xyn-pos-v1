@@ -101,7 +101,7 @@ func (h *UserHandler) Logout(ctx context.Context, req *tenantv1.LogoutRequest) (
 	return &emptypb.Empty{}, nil
 }
 
-// GetUser retrieves a single user by ID.
+// GetUser retrieves a single user by ID. Enforces cross-tenant isolation.
 func (h *UserHandler) GetUser(ctx context.Context, req *tenantv1.GetUserRequest) (*tenantv1.GetUserResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
@@ -111,16 +111,23 @@ func (h *UserHandler) GetUser(ctx context.Context, req *tenantv1.GetUserRequest)
 	if err != nil {
 		return nil, mapUserError(err)
 	}
+	claims, err := extractClaimsFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
+	}
+	if u.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
 	return &tenantv1.GetUserResponse{User: domainUserToProto(u)}, nil
 }
 
-// ListUsers returns all users belonging to the specified tenant.
-func (h *UserHandler) ListUsers(ctx context.Context, req *tenantv1.ListUsersRequest) (*tenantv1.ListUsersResponse, error) {
-	tenantID, err := uuid.Parse(req.TenantId)
+// ListUsers returns all users belonging to the caller's tenant (derived from JWT claims).
+func (h *UserHandler) ListUsers(ctx context.Context, _ *tenantv1.ListUsersRequest) (*tenantv1.ListUsersResponse, error) {
+	claims, err := extractClaimsFromContext(ctx)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
 	}
-	users, err := h.listUsersH.Handle(ctx, tenantID)
+	users, err := h.listUsersH.Handle(ctx, claims.TenantID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -151,10 +158,18 @@ func (h *UserHandler) DeactivateUser(ctx context.Context, req *tenantv1.Deactiva
 }
 
 // SetPIN stores a bcrypt-hashed PIN for fast cashier login.
+// Only the target user themselves, or an owner/manager, may set a PIN.
 func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (*emptypb.Empty, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user_id")
+	}
+	claims, err := extractClaimsFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
+	}
+	if claims.UserID != userID && claims.Role != string(user.RoleOwner) && claims.Role != string(user.RoleManager) {
+		return nil, status.Error(codes.PermissionDenied, "cannot set PIN for another user")
 	}
 	if err := h.setPINH.Handle(ctx, command.SetPINInput{UserID: userID, PIN: req.Pin}); err != nil {
 		return nil, mapUserError(err)
@@ -162,11 +177,18 @@ func (h *UserHandler) SetPIN(ctx context.Context, req *tenantv1.SetPINRequest) (
 	return &emptypb.Empty{}, nil
 }
 
-// VerifyPIN checks a PIN against the stored bcrypt hash and reports whether it matches.
+// VerifyPIN checks a PIN against the stored bcrypt hash. Callers may only verify their own PIN.
 func (h *UserHandler) VerifyPIN(ctx context.Context, req *tenantv1.VerifyPINRequest) (*tenantv1.VerifyPINResponse, error) {
 	userID, err := uuid.Parse(req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user_id")
+	}
+	claims, err := extractClaimsFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "missing auth context")
+	}
+	if claims.UserID != userID {
+		return nil, status.Error(codes.PermissionDenied, "cannot verify PIN for another user")
 	}
 	valid, err := h.verifyPINH.Handle(ctx, command.VerifyPINInput{UserID: userID, PIN: req.Pin})
 	if err != nil {
