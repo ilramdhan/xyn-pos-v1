@@ -32,6 +32,9 @@ secrets/
 # Go
 # ─────────────────────────────────────────────────────────
 bin/
+# go build without -o writes a binary named after the package directory
+/server
+services/*/server
 *.exe
 *.test
 *.out
