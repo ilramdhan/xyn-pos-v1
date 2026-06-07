@@ -11,6 +11,7 @@ type Config struct {
 	DatabaseURL  string
 	KafkaBrokers []string
 	GRPCPort     string
+	PASETOKeyHex string // optional — empty disables auth (dev mode)
 }
 
 // ConfigFromEnv reads Config from environment variables.
@@ -24,6 +25,7 @@ func ConfigFromEnv() (*Config, error) {
 		DatabaseURL:  dbURL,
 		KafkaBrokers: strings.Split(brokersRaw, ","),
 		GRPCPort:     envOrDefault("INVENTORY_GRPC_PORT", "50054"),
+		PASETOKeyHex: os.Getenv("PASETO_KEY_HEX"),
 	}, nil
 }
 
