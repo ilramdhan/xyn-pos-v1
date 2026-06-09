@@ -34,7 +34,7 @@ func (s *CreateBranchSuite) TestHandle_Success() {
 
 	cmd := CreateBranchCommand{
 		TenantID: existing.ID,
-		Name:           "Cabang Sudirman",
+		Name:     "Cabang Sudirman",
 		Address: domain.Address{
 			Street:  "Jl. Sudirman No. 5",
 			City:    "Jakarta",

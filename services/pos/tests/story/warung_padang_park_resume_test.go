@@ -44,7 +44,7 @@ func TestStoryD_ParkResumeOrder(t *testing.T) {
 		UnitPrice: 1_500_000, Quantity: 2,
 	}))
 	require.NoError(t, o.AddItem(orderdomain.OrderItem{
-		ProductID: uuid.New(), ProductName: "Es Teh",
+		ProductID: uuid.New(), ProductName: "Es Teh", //nolint:misspell // Indonesian: iced tea
 		UnitPrice: 500_000, Quantity: 2,
 	}))
 	require.Len(t, o.Items, 2)

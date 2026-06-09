@@ -22,8 +22,8 @@ func TestPark_Success(t *testing.T) {
 
 func TestPark_NonDraft_Fails(t *testing.T) {
 	tests := []struct {
-		name   string
-		setup  func(*order.Order)
+		name  string
+		setup func(*order.Order)
 	}{
 		{
 			name: "pending_payment",
