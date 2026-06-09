@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -33,6 +34,11 @@ func (h *CreateBranchHandler) Handle(ctx context.Context, cmd CreateBranchComman
 	t, err := h.repo.FindByID(ctx, cmd.TenantID)
 	if err != nil {
 		return nil, fmt.Errorf("CreateBranchHandler.FindByID: %w", err)
+	}
+
+	// Guard: tenant must have an active subscription to add branches.
+	if err := t.CheckSubscriptionAccess(time.Now()); err != nil {
+		return nil, fmt.Errorf("CreateBranchHandler.CheckSubscriptionAccess: %w", err)
 	}
 
 	tz := cmd.Timezone
