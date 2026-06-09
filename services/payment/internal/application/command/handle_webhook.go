@@ -84,6 +84,9 @@ func (h *HandleWebhookHandler) Handle(ctx context.Context, in WebhookInput) erro
 		if err != nil {
 			slog.WarnContext(ctx, "HandleWebhook: failed to generate receipt", "err", err)
 		} else {
+			// TODO(phase5): a transient save failure here causes permanent receipt loss
+			// because Midtrans already received HTTP 200 and won't retry. Proper fix
+			// requires an outbox pattern: persist receipt atomically with payment update.
 			if saveErr := h.receiptRepo.Save(ctx, receipt); saveErr != nil {
 				slog.WarnContext(ctx, "HandleWebhook: failed to save receipt", "err", saveErr)
 			} else {

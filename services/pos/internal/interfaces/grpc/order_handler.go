@@ -495,6 +495,8 @@ func protoOrderStatusToDomain(s posv1.OrderStatus) order.OrderStatus {
 		return order.StatusPaid
 	case posv1.OrderStatus_ORDER_STATUS_CANCELLED:
 		return order.StatusCancelled
+	case posv1.OrderStatus_ORDER_STATUS_PARKED:
+		return order.StatusParked
 	default:
 		return order.StatusDraft
 	}
