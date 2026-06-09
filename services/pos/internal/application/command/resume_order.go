@@ -21,17 +21,17 @@ func NewResumeOrderHandler(repo order.OrderRepository, publisher OrderEventPubli
 	return &ResumeOrderHandler{repo: repo, publisher: publisher}
 }
 
-// Handle resumes the parked order with the given ID.
-func (h *ResumeOrderHandler) Handle(ctx context.Context, orderID uuid.UUID) error {
+// Handle resumes the parked order and returns it in its new DRAFT state.
+func (h *ResumeOrderHandler) Handle(ctx context.Context, orderID uuid.UUID) (*order.Order, error) {
 	o, err := h.repo.FindByID(ctx, orderID)
 	if err != nil {
-		return fmt.Errorf("ResumeOrder find: %w", err)
+		return nil, fmt.Errorf("ResumeOrder find: %w", err)
 	}
 	if err := o.Resume(); err != nil {
-		return fmt.Errorf("ResumeOrder domain: %w", err)
+		return nil, fmt.Errorf("ResumeOrder domain: %w", err)
 	}
 	if err := h.repo.Update(ctx, o); err != nil {
-		return fmt.Errorf("ResumeOrder update: %w", err)
+		return nil, fmt.Errorf("ResumeOrder update: %w", err)
 	}
 	for _, ev := range o.PopEvents() {
 		if resumed, ok := ev.(order.OrderResumedEvent); ok {
@@ -40,5 +40,5 @@ func (h *ResumeOrderHandler) Handle(ctx context.Context, orderID uuid.UUID) erro
 			}
 		}
 	}
-	return nil
+	return o, nil
 }
