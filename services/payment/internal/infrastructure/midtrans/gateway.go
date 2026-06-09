@@ -65,6 +65,13 @@ func (g *MidtransGateway) VoidTransaction(_ context.Context, externalID string) 
 	return fmt.Errorf("midtrans.VoidTransaction: not yet wired (externalID=%s)", externalID)
 }
 
+// RefundTransaction requests a refund from Midtrans for a given transaction.
+// refundAmount is in minor units (sen).
+func (g *MidtransGateway) RefundTransaction(_ context.Context, externalID string, refundAmount int64) error {
+	// TODO(phase5): wire Midtrans CoreAPI refund endpoint
+	return fmt.Errorf("midtrans.RefundTransaction: not yet wired (externalID=%s, amount=%d)", externalID, refundAmount)
+}
+
 // methodToEnabledPayments maps our PaymentMethod to Snap-specific payment types.
 // Note: QRIS is not a named constant in midtrans-go v1.3.8; GoPay supports QRIS in sandbox.
 func methodToEnabledPayments(m payment.PaymentMethod) []snap.SnapPaymentType {

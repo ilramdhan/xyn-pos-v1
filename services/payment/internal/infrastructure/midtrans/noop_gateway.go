@@ -29,3 +29,8 @@ func (g *NoopGateway) CreateTransaction(
 func (g *NoopGateway) VoidTransaction(_ context.Context, _ string) error {
 	return nil
 }
+
+// RefundTransaction always succeeds.
+func (g *NoopGateway) RefundTransaction(_ context.Context, _ string, _ int64) error {
+	return nil
+}

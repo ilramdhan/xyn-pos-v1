@@ -14,6 +14,7 @@ import (
 const (
 	topicPaymentCompleted = "payment.completed"
 	topicPaymentVoided    = "payment.voided"
+	topicPaymentRefunded  = "payment.refunded"
 	topicReceiptIssued    = "receipt.issued"
 )
 
@@ -66,6 +67,24 @@ func (p *EventPublisher) PublishVoided(ctx context.Context, ev payment.PaymentVo
 	if err := p.client.ProduceSync(ctx, rec).FirstErr(); err != nil {
 		slog.WarnContext(ctx, "kafka.PublishVoided failed", "err", err)
 		return fmt.Errorf("kafka.PublishVoided produce: %w", err)
+	}
+	return nil
+}
+
+// PublishRefunded publishes a PaymentRefundedEvent.
+func (p *EventPublisher) PublishRefunded(ctx context.Context, ev payment.PaymentRefundedEvent) error {
+	payload, err := json.Marshal(ev)
+	if err != nil {
+		return fmt.Errorf("kafka.PublishRefunded marshal: %w", err)
+	}
+	rec := &kgo.Record{
+		Topic: topicPaymentRefunded,
+		Key:   []byte(ev.PaymentID.String()),
+		Value: payload,
+	}
+	if err := p.client.ProduceSync(ctx, rec).FirstErr(); err != nil {
+		slog.WarnContext(ctx, "kafka.PublishRefunded failed", "err", err)
+		return fmt.Errorf("kafka.PublishRefunded produce: %w", err)
 	}
 	return nil
 }
