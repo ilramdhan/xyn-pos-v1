@@ -15,4 +15,7 @@ type PaymentGateway interface {
 	CreateTransaction(ctx context.Context, p *Payment, customerName, customerEmail string) (*GatewayResult, error)
 	// VoidTransaction cancels an existing gateway transaction.
 	VoidTransaction(ctx context.Context, externalID string) error
+	// RefundTransaction requests a refund from the gateway for a given external transaction.
+	// refundAmount is in minor units (sen).
+	RefundTransaction(ctx context.Context, externalID string, refundAmount int64) error
 }

@@ -45,3 +45,14 @@ type ReceiptIssuedEvent struct {
 }
 
 func (ReceiptIssuedEvent) paymentEvent() {}
+
+// PaymentRefundedEvent is published when a payment is fully or partially refunded.
+type PaymentRefundedEvent struct {
+	PaymentID      uuid.UUID
+	OrderID        uuid.UUID
+	TenantID       uuid.UUID
+	RefundedAmount int64
+	OccurredAt     time.Time
+}
+
+func (PaymentRefundedEvent) paymentEvent() {}
