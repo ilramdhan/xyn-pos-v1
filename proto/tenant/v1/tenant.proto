@@ -23,6 +23,15 @@ enum TenantStatus {
   TENANT_STATUS_DELETED = 3;
 }
 
+// SubscriptionStatus tracks the tenant's billing lifecycle.
+enum SubscriptionStatus {
+  SUBSCRIPTION_STATUS_UNSPECIFIED = 0;
+  SUBSCRIPTION_STATUS_ACTIVE = 1;
+  SUBSCRIPTION_STATUS_TRIAL = 2;
+  SUBSCRIPTION_STATUS_EXPIRED = 3;
+  SUBSCRIPTION_STATUS_CANCELLED = 4;
+}
+
 // Tenant represents a multi-tenant customer organization.
 message Tenant {
   string id = 1;
@@ -32,6 +41,8 @@ message Tenant {
   TenantStatus status = 5;
   string created_at = 6;
   string updated_at = 7;
+  SubscriptionStatus subscription_status = 8;
+  string trial_ends_at = 9; // RFC3339, empty string if null
 }
 
 // Branch represents a physical location within a tenant.
@@ -91,10 +102,20 @@ message ListBranchesResponse {
   common.v1.PaginationMeta pagination = 2;
 }
 
+message UpdatePlanRequest {
+  string tenant_id = 1;
+  PlanTier new_tier = 2;
+}
+
+message UpdatePlanResponse {
+  Tenant tenant = 1;
+}
+
 // TenantService manages tenant lifecycle and branch management.
 service TenantService {
   rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
   rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
   rpc CreateBranch(CreateBranchRequest) returns (CreateBranchResponse);
   rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
+  rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse);
 }

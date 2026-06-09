@@ -30,8 +30,9 @@ func NewServer(port int, tenantHandler *TenantHandler, userHandler *UserHandler,
 		tenantv1.RegisterUserServiceServer(srv, userHandler)
 	}
 
-	// TenantServiceServer registration will be added when proto handler is wired.
-	_ = tenantHandler
+	if tenantHandler != nil {
+		tenantv1.RegisterTenantServiceServer(srv, tenantHandler)
+	}
 
 	return &Server{grpc: srv, port: port}
 }
