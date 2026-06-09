@@ -12,11 +12,10 @@ import (
 
 // CreateBranchCommand carries the input for adding a branch to a tenant.
 type CreateBranchCommand struct {
-	IdempotencyKey string
-	TenantID       uuid.UUID
-	Name           string
-	Address        domain.Address
-	Timezone       string
+	TenantID uuid.UUID
+	Name     string
+	Address  domain.Address
+	Timezone string
 }
 
 // CreateBranchHandler handles the CreateBranch command.

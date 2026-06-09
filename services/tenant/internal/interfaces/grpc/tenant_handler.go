@@ -83,16 +83,15 @@ func (h *TenantHandler) GetTenant(ctx context.Context, tenantIDStr string) (*dom
 }
 
 // CreateBranch handles branch creation. Wired to pb.TenantServiceServer in Phase 4.
-func (h *TenantHandler) CreateBranch(ctx context.Context, idempotencyKey string, tenantID uuid.UUID, name string, address domain.Address, timezone string) (*domain.Branch, error) {
+func (h *TenantHandler) CreateBranch(ctx context.Context, tenantID uuid.UUID, name string, address domain.Address, timezone string) (*domain.Branch, error) {
 	ctx, span := tracer.Start(ctx, "TenantHandler.CreateBranch")
 	defer span.End()
 
 	cmd := command.CreateBranchCommand{
-		IdempotencyKey: idempotencyKey,
-		TenantID:       tenantID,
-		Name:           name,
-		Address:        address,
-		Timezone:       timezone,
+		TenantID: tenantID,
+		Name:     name,
+		Address:  address,
+		Timezone: timezone,
 	}
 
 	result, err := h.createBranch.Handle(ctx, cmd)

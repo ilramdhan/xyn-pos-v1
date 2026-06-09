@@ -139,7 +139,7 @@ func (r *TenantRepository) ListBranches(ctx context.Context, tenantID uuid.UUID)
 			FROM branches WHERE tenant_id = $1 ORDER BY created_at ASC
 		`, tenantID)
 		if err != nil {
-			return fmt.Errorf("TenantRepository.ListBranches: %w", err)
+			return fmt.Errorf("TenantRepository.ListBranches query: %w", err)
 		}
 		defer rows.Close()
 
@@ -159,7 +159,7 @@ func (r *TenantRepository) ListBranches(ctx context.Context, tenantID uuid.UUID)
 		return rows.Err()
 	})
 	if err != nil {
-		return nil, fmt.Errorf("TenantRepository.ListBranches: %w", err)
+		return nil, fmt.Errorf("TenantRepository.ListBranches tx: %w", err)
 	}
 	return branches, nil
 }
