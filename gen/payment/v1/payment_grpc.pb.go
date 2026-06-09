@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PaymentService_InitiatePayment_FullMethodName   = "/payment.v1.PaymentService/InitiatePayment"
 	PaymentService_VoidPayment_FullMethodName       = "/payment.v1.PaymentService/VoidPayment"
+	PaymentService_RefundPayment_FullMethodName     = "/payment.v1.PaymentService/RefundPayment"
 	PaymentService_GetPayment_FullMethodName        = "/payment.v1.PaymentService/GetPayment"
 	PaymentService_GetPaymentByOrder_FullMethodName = "/payment.v1.PaymentService/GetPaymentByOrder"
 	PaymentService_GetReceipt_FullMethodName        = "/payment.v1.PaymentService/GetReceipt"
@@ -35,6 +36,7 @@ const (
 type PaymentServiceClient interface {
 	InitiatePayment(ctx context.Context, in *InitiatePaymentRequest, opts ...grpc.CallOption) (*InitiatePaymentResponse, error)
 	VoidPayment(ctx context.Context, in *VoidPaymentRequest, opts ...grpc.CallOption) (*VoidPaymentResponse, error)
+	RefundPayment(ctx context.Context, in *RefundPaymentRequest, opts ...grpc.CallOption) (*RefundPaymentResponse, error)
 	GetPayment(ctx context.Context, in *GetPaymentRequest, opts ...grpc.CallOption) (*GetPaymentResponse, error)
 	GetPaymentByOrder(ctx context.Context, in *GetPaymentByOrderRequest, opts ...grpc.CallOption) (*GetPaymentByOrderResponse, error)
 	GetReceipt(ctx context.Context, in *GetReceiptRequest, opts ...grpc.CallOption) (*GetReceiptResponse, error)
@@ -63,6 +65,16 @@ func (c *paymentServiceClient) VoidPayment(ctx context.Context, in *VoidPaymentR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VoidPaymentResponse)
 	err := c.cc.Invoke(ctx, PaymentService_VoidPayment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) RefundPayment(ctx context.Context, in *RefundPaymentRequest, opts ...grpc.CallOption) (*RefundPaymentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefundPaymentResponse)
+	err := c.cc.Invoke(ctx, PaymentService_RefundPayment_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +129,7 @@ func (c *paymentServiceClient) GetReceiptByOrder(ctx context.Context, in *GetRec
 type PaymentServiceServer interface {
 	InitiatePayment(context.Context, *InitiatePaymentRequest) (*InitiatePaymentResponse, error)
 	VoidPayment(context.Context, *VoidPaymentRequest) (*VoidPaymentResponse, error)
+	RefundPayment(context.Context, *RefundPaymentRequest) (*RefundPaymentResponse, error)
 	GetPayment(context.Context, *GetPaymentRequest) (*GetPaymentResponse, error)
 	GetPaymentByOrder(context.Context, *GetPaymentByOrderRequest) (*GetPaymentByOrderResponse, error)
 	GetReceipt(context.Context, *GetReceiptRequest) (*GetReceiptResponse, error)
@@ -135,6 +148,9 @@ func (UnimplementedPaymentServiceServer) InitiatePayment(context.Context, *Initi
 }
 func (UnimplementedPaymentServiceServer) VoidPayment(context.Context, *VoidPaymentRequest) (*VoidPaymentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VoidPayment not implemented")
+}
+func (UnimplementedPaymentServiceServer) RefundPayment(context.Context, *RefundPaymentRequest) (*RefundPaymentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefundPayment not implemented")
 }
 func (UnimplementedPaymentServiceServer) GetPayment(context.Context, *GetPaymentRequest) (*GetPaymentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPayment not implemented")
@@ -200,6 +216,24 @@ func _PaymentService_VoidPayment_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PaymentServiceServer).VoidPayment(ctx, req.(*VoidPaymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_RefundPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefundPaymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).RefundPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_RefundPayment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).RefundPayment(ctx, req.(*RefundPaymentRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -290,6 +324,10 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VoidPayment",
 			Handler:    _PaymentService_VoidPayment_Handler,
+		},
+		{
+			MethodName: "RefundPayment",
+			Handler:    _PaymentService_RefundPayment_Handler,
 		},
 		{
 			MethodName: "GetPayment",

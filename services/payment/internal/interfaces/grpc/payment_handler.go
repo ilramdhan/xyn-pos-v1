@@ -22,6 +22,7 @@ type PaymentHandler struct {
 	paymentv1.UnimplementedPaymentServiceServer
 	initiateH          *command.InitiatePaymentHandler
 	voidH              *command.VoidPaymentHandler
+	refundH            *command.RefundPaymentHandler
 	getH               *query.GetPaymentHandler
 	getByOrderH        *query.GetPaymentByOrderHandler
 	getReceiptH        *query.GetReceiptHandler
@@ -32,6 +33,7 @@ type PaymentHandler struct {
 func NewPaymentHandler(
 	initiateH *command.InitiatePaymentHandler,
 	voidH *command.VoidPaymentHandler,
+	refundH *command.RefundPaymentHandler,
 	getH *query.GetPaymentHandler,
 	getByOrderH *query.GetPaymentByOrderHandler,
 	getReceiptH *query.GetReceiptHandler,
@@ -40,6 +42,7 @@ func NewPaymentHandler(
 	return &PaymentHandler{
 		initiateH:          initiateH,
 		voidH:              voidH,
+		refundH:            refundH,
 		getH:               getH,
 		getByOrderH:        getByOrderH,
 		getReceiptH:        getReceiptH,
@@ -102,6 +105,32 @@ func (h *PaymentHandler) VoidPayment(ctx context.Context, req *paymentv1.VoidPay
 		return nil, mapPaymentError(err)
 	}
 	return &paymentv1.VoidPaymentResponse{}, nil
+}
+
+// RefundPayment processes a refund for a successful payment.
+func (h *PaymentHandler) RefundPayment(ctx context.Context, req *paymentv1.RefundPaymentRequest) (*paymentv1.RefundPaymentResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+
+	paymentID, err := uuid.Parse(req.PaymentId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
+	}
+	if req.RefundAmount <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "refund_amount must be > 0")
+	}
+
+	if err := h.refundH.Handle(ctx, command.RefundPaymentInput{
+		PaymentID:    paymentID,
+		TenantID:     claims.TenantID,
+		RefundAmount: req.RefundAmount,
+		Reason:       req.Reason,
+	}); err != nil {
+		return nil, mapPaymentError(err)
+	}
+	return &paymentv1.RefundPaymentResponse{}, nil
 }
 
 // GetPayment retrieves a payment by ID.
@@ -190,6 +219,8 @@ func domainStatusToProto(s payment.PaymentStatus) paymentv1.PaymentStatus {
 		return paymentv1.PaymentStatus_PAYMENT_STATUS_FAILED
 	case payment.StatusVoided:
 		return paymentv1.PaymentStatus_PAYMENT_STATUS_VOIDED
+	case payment.StatusRefunded:
+		return paymentv1.PaymentStatus_PAYMENT_STATUS_REFUNDED
 	default:
 		return paymentv1.PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
 	}
@@ -237,6 +268,8 @@ func mapPaymentError(err error) error {
 		return status.Error(codes.AlreadyExists, "duplicate idempotency key")
 	case errors.Is(err, payment.ErrGatewayFailure):
 		return status.Error(codes.Unavailable, "payment gateway unavailable")
+	case errors.Is(err, payment.ErrPartialRefundInvalid):
+		return status.Error(codes.InvalidArgument, "invalid refund amount")
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}

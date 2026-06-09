@@ -74,6 +74,7 @@ func NewServer(cfg *Config) (*App, error) {
 	// Application: commands
 	initiateH := command.NewInitiatePaymentHandler(paymentRepo, gw, redisSt)
 	voidH := command.NewVoidPaymentHandler(paymentRepo, gw, kafkaPub)
+	refundH := command.NewRefundPaymentHandler(paymentRepo, gw, kafkaPub)
 	webhookH := command.NewHandleWebhookHandler(paymentRepo, kafkaPub, receiptRepo, kafkaPub)
 
 	// Application: queries
@@ -95,7 +96,7 @@ func NewServer(cfg *Config) (*App, error) {
 	}
 
 	// Interfaces: gRPC
-	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, getH, getByOrderH, getReceiptH, getReceiptByOrderH)
+	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, refundH, getH, getByOrderH, getReceiptH, getReceiptByOrderH)
 	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, grpcHdlr, verifyFn)
 
 	// Interfaces: HTTP (Midtrans webhook)
