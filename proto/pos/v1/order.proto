@@ -21,6 +21,7 @@ enum OrderStatus {
   ORDER_STATUS_PENDING_PAYMENT = 2;
   ORDER_STATUS_PAID = 3;
   ORDER_STATUS_CANCELLED = 4;
+  ORDER_STATUS_PARKED = 5;
 }
 
 // DiscountType is either a fixed amount or a percentage.
@@ -197,6 +198,18 @@ message GetShiftResponse {
   Shift shift = 1;
 }
 
+message ParkOrderRequest {
+  string order_id = 1;
+}
+message ParkOrderResponse {}
+
+message ResumeOrderRequest {
+  string order_id = 1;
+}
+message ResumeOrderResponse {
+  Order order = 1;
+}
+
 // OrderService manages order lifecycle and shift management.
 service OrderService {
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
@@ -206,6 +219,8 @@ service OrderService {
   rpc ApplyDiscount(ApplyDiscountRequest) returns (ApplyDiscountResponse);
   rpc SubmitOrder(SubmitOrderRequest) returns (SubmitOrderResponse);
   rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  rpc ParkOrder(ParkOrderRequest) returns (ParkOrderResponse);
+  rpc ResumeOrder(ResumeOrderRequest) returns (ResumeOrderResponse);
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
   rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
   rpc OpenShift(OpenShiftRequest) returns (OpenShiftResponse);

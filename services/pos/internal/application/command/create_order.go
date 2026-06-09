@@ -27,6 +27,8 @@ type CreateOrderInput struct {
 type OrderEventPublisher interface {
 	PublishOrderPaid(ctx context.Context, event order.OrderPaidEvent) error
 	PublishOrderCancelled(ctx context.Context, event order.OrderCancelledEvent) error
+	PublishOrderParked(ctx context.Context, event order.OrderParkedEvent) error
+	PublishOrderResumed(ctx context.Context, event order.OrderResumedEvent) error
 }
 
 // CreateOrderHandler creates a new order, returning an existing order on duplicate idempotency key.

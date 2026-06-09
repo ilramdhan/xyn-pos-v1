@@ -11,10 +11,11 @@ import (
 type PaymentStatus string
 
 const (
-	StatusPending PaymentStatus = "pending"
-	StatusSuccess PaymentStatus = "success"
-	StatusFailed  PaymentStatus = "failed"
-	StatusVoided  PaymentStatus = "voided"
+	StatusPending  PaymentStatus = "pending"
+	StatusSuccess  PaymentStatus = "success"
+	StatusFailed   PaymentStatus = "failed"
+	StatusVoided   PaymentStatus = "voided"
+	StatusRefunded PaymentStatus = "refunded"
 )
 
 // PaymentMethod is the payment channel used.
@@ -39,6 +40,8 @@ type Payment struct {
 	SnapToken       string
 	SnapRedirectURL string
 	IdempotencyKey  string
+	RefundedAmount  int64  // minor units; 0 until a refund is processed
+	RefundReason    string // human-readable reason
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	events          []DomainEvent
@@ -113,6 +116,31 @@ func (p *Payment) Void(reason string, voidedBy uuid.UUID) error {
 		TenantID:   p.TenantID,
 		VoidedBy:   voidedBy,
 		OccurredAt: time.Now().UTC(),
+	})
+	return nil
+}
+
+// Refund transitions a SUCCESS payment to REFUNDED.
+// refundAmount may be less than p.Amount (partial refund), but this is a
+// single-shot operation — the status becomes REFUNDED regardless of amount,
+// preventing subsequent refunds on the same payment.
+func (p *Payment) Refund(refundAmount int64, reason string) error {
+	if p.Status != StatusSuccess {
+		return fmt.Errorf("Refund: %w", ErrInvalidStatusTransition)
+	}
+	if refundAmount <= 0 || refundAmount > p.Amount {
+		return ErrPartialRefundInvalid
+	}
+	p.Status = StatusRefunded
+	p.RefundedAmount = refundAmount
+	p.RefundReason = reason
+	p.UpdatedAt = time.Now().UTC()
+	p.events = append(p.events, PaymentRefundedEvent{
+		PaymentID:      p.ID,
+		OrderID:        p.OrderID,
+		TenantID:       p.TenantID,
+		RefundedAmount: refundAmount,
+		OccurredAt:     time.Now().UTC(),
 	})
 	return nil
 }

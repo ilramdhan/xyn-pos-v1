@@ -43,6 +43,16 @@ func (p *EventPublisher) PublishOrderCancelled(ctx context.Context, event order.
 	return p.publish(ctx, "pos.order.cancelled", event.TenantID, event)
 }
 
+// PublishOrderParked publishes to the pos.order.parked topic.
+func (p *EventPublisher) PublishOrderParked(ctx context.Context, event order.OrderParkedEvent) error {
+	return p.publish(ctx, "pos.order.parked", event.TenantID, event)
+}
+
+// PublishOrderResumed publishes to the pos.order.resumed topic.
+func (p *EventPublisher) PublishOrderResumed(ctx context.Context, event order.OrderResumedEvent) error {
+	return p.publish(ctx, "pos.order.resumed", event.TenantID, event)
+}
+
 func (p *EventPublisher) publish(ctx context.Context, topic string, tenantID uuid.UUID, payload any) error {
 	body, err := json.Marshal(map[string]any{
 		"event_id":    uuid.NewString(),

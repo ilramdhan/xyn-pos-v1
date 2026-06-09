@@ -33,9 +33,8 @@ func (s *CreateBranchSuite) TestHandle_Success() {
 	s.repo.On("Save", mock.Anything, mock.AnythingOfType("*tenant.Tenant")).Return(nil)
 
 	cmd := CreateBranchCommand{
-		IdempotencyKey: "idem-001",
-		TenantID:       existing.ID,
-		Name:           "Cabang Sudirman",
+		TenantID: existing.ID,
+		Name:     "Cabang Sudirman",
 		Address: domain.Address{
 			Street:  "Jl. Sudirman No. 5",
 			City:    "Jakarta",

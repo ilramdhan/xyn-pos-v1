@@ -11,6 +11,7 @@ enum PaymentStatus {
   PAYMENT_STATUS_SUCCESS = 2;
   PAYMENT_STATUS_FAILED = 3;
   PAYMENT_STATUS_VOIDED = 4;
+  PAYMENT_STATUS_REFUNDED = 5;
 }
 
 // PaymentMethod is how the customer paid.
@@ -55,6 +56,13 @@ message VoidPaymentRequest {
 }
 message VoidPaymentResponse {}
 
+message RefundPaymentRequest {
+  string payment_id = 1;
+  int64 refund_amount = 2;
+  string reason = 3;
+}
+message RefundPaymentResponse {}
+
 message GetPaymentRequest {
   string payment_id = 1;
 }
@@ -69,10 +77,38 @@ message GetPaymentByOrderResponse {
   Payment payment = 1;
 }
 
+message Receipt {
+  string id = 1;
+  string payment_id = 2;
+  string order_id = 3;
+  string tenant_id = 4;
+  string receipt_number = 5;
+  int64 amount = 6;
+  PaymentMethod method = 7;
+  string issued_at = 8;
+}
+
+message GetReceiptRequest {
+  string payment_id = 1;
+}
+message GetReceiptResponse {
+  Receipt receipt = 1;
+}
+
+message GetReceiptByOrderRequest {
+  string order_id = 1;
+}
+message GetReceiptByOrderResponse {
+  Receipt receipt = 1;
+}
+
 // PaymentService handles payment lifecycle.
 service PaymentService {
   rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
   rpc VoidPayment(VoidPaymentRequest) returns (VoidPaymentResponse);
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
   rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse);
   rpc GetPaymentByOrder(GetPaymentByOrderRequest) returns (GetPaymentByOrderResponse);
+  rpc GetReceipt(GetReceiptRequest) returns (GetReceiptResponse);
+  rpc GetReceiptByOrder(GetReceiptByOrderRequest) returns (GetReceiptByOrderResponse);
 }

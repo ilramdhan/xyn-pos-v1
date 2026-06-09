@@ -34,14 +34,16 @@ func (r *TenantRepository) Save(ctx context.Context, t *domain.Tenant) error {
 
 	return shareddb.WithTenantTx(ctx, r.pool, t.ID, func(tx pgx.Tx) error {
 		_, err := tx.Exec(ctx, `
-			INSERT INTO tenants (id, name, slug, plan, status, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			INSERT INTO tenants (id, name, slug, plan, status, subscription_status, trial_ends_at, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			ON CONFLICT (id) DO UPDATE SET
-				name       = EXCLUDED.name,
-				plan       = EXCLUDED.plan,
-				status     = EXCLUDED.status,
-				updated_at = EXCLUDED.updated_at
-		`, t.ID, t.Name, t.Slug, string(t.Plan.Tier), string(t.Status), t.CreatedAt, t.UpdatedAt)
+				name                = EXCLUDED.name,
+				plan                = EXCLUDED.plan,
+				status              = EXCLUDED.status,
+				subscription_status = EXCLUDED.subscription_status,
+				trial_ends_at       = EXCLUDED.trial_ends_at,
+				updated_at          = EXCLUDED.updated_at
+		`, t.ID, t.Name, t.Slug, string(t.Plan.Tier), string(t.Status), string(t.SubscriptionStatus), t.TrialEndsAt, t.CreatedAt, t.UpdatedAt)
 		if err != nil {
 			return fmt.Errorf("TenantRepository.Save upsert: %w", err)
 		}
@@ -71,11 +73,11 @@ func (r *TenantRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	defer span.End()
 
 	var t domain.Tenant
-	var planTier, status string
+	var planTier, status, subscriptionStatus string
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, name, slug, plan, status, created_at, updated_at
+		SELECT id, name, slug, plan, status, subscription_status, trial_ends_at, created_at, updated_at
 		FROM tenants WHERE id = $1
-	`, id).Scan(&t.ID, &t.Name, &t.Slug, &planTier, &status, &t.CreatedAt, &t.UpdatedAt)
+	`, id).Scan(&t.ID, &t.Name, &t.Slug, &planTier, &status, &subscriptionStatus, &t.TrialEndsAt, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrTenantNotFound
@@ -84,6 +86,7 @@ func (r *TenantRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	}
 	t.Plan = domain.PlanFromTier(domain.PlanTier(planTier))
 	t.Status = domain.Status(status)
+	t.SubscriptionStatus = domain.SubscriptionStatus(subscriptionStatus)
 
 	branches, err := r.ListBranches(ctx, id)
 	if err != nil {
@@ -136,7 +139,7 @@ func (r *TenantRepository) ListBranches(ctx context.Context, tenantID uuid.UUID)
 			FROM branches WHERE tenant_id = $1 ORDER BY created_at ASC
 		`, tenantID)
 		if err != nil {
-			return fmt.Errorf("TenantRepository.ListBranches: %w", err)
+			return fmt.Errorf("TenantRepository.ListBranches query: %w", err)
 		}
 		defer rows.Close()
 
@@ -156,7 +159,7 @@ func (r *TenantRepository) ListBranches(ctx context.Context, tenantID uuid.UUID)
 		return rows.Err()
 	})
 	if err != nil {
-		return nil, fmt.Errorf("TenantRepository.ListBranches: %w", err)
+		return nil, fmt.Errorf("TenantRepository.ListBranches tx: %w", err)
 	}
 	return branches, nil
 }

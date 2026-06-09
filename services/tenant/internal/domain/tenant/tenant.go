@@ -85,6 +85,24 @@ func NewBranch(tenantID uuid.UUID, name string, address Address, timezone string
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
 
+// tierRank defines the ordering of subscription tiers for upgrade/downgrade validation.
+var tierRank = map[PlanTier]int{
+	PlanTierFree:       0,
+	PlanTierGrowth:     1,
+	PlanTierEnterprise: 2,
+}
+
+// SubscriptionStatus is the state of the tenant's subscription.
+type SubscriptionStatus string
+
+// Subscription status values.
+const (
+	SubscriptionActive    SubscriptionStatus = "active"
+	SubscriptionTrial     SubscriptionStatus = "trial"
+	SubscriptionExpired   SubscriptionStatus = "expired"
+	SubscriptionCancelled SubscriptionStatus = "cancelled"
+)
+
 // Tenant is the aggregate root for the Tenant bounded context.
 type Tenant struct {
 	ID        uuid.UUID
@@ -95,6 +113,9 @@ type Tenant struct {
 	Branches  []Branch
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	SubscriptionStatus SubscriptionStatus
+	TrialEndsAt        *time.Time // nil if not on trial
 
 	events []DomainEvent
 }
@@ -110,14 +131,17 @@ func NewTenant(name, slug string, tier PlanTier) (*Tenant, error) {
 	}
 
 	now := time.Now().UTC()
+	trialEnd := now.Add(14 * 24 * time.Hour)
 	t := &Tenant{
-		ID:        uuid.New(),
-		Name:      name,
-		Slug:      slug,
-		Plan:      PlanFromTier(tier),
-		Status:    StatusActive,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:                 uuid.New(),
+		Name:               name,
+		Slug:               slug,
+		Plan:               PlanFromTier(tier),
+		Status:             StatusActive,
+		CreatedAt:          now,
+		UpdatedAt:          now,
+		SubscriptionStatus: SubscriptionTrial,
+		TrialEndsAt:        &trialEnd,
 	}
 	t.events = append(t.events, CreatedEvent{
 		TenantID:  t.ID,
@@ -150,4 +174,66 @@ func (t *Tenant) PopEvents() []DomainEvent {
 	evts := t.events
 	t.events = nil
 	return evts
+}
+
+// IsSubscriptionActive returns true if the tenant can use the system.
+// Trial tenants are active until TrialEndsAt; active subscriptions are always active.
+func (t *Tenant) IsSubscriptionActive(now time.Time) bool {
+	switch t.SubscriptionStatus {
+	case SubscriptionActive:
+		return true
+	case SubscriptionTrial:
+		return t.TrialEndsAt != nil && now.Before(*t.TrialEndsAt)
+	default:
+		return false
+	}
+}
+
+// CheckSubscriptionAccess returns ErrSubscriptionExpired if the tenant cannot access the system.
+func (t *Tenant) CheckSubscriptionAccess(now time.Time) error {
+	if !t.IsSubscriptionActive(now) {
+		return ErrSubscriptionExpired
+	}
+	return nil
+}
+
+// UpgradePlan upgrades the tenant to a new plan tier and activates the subscription.
+// Returns ErrSameTierUpgrade if the new tier equals the current tier.
+// Returns ErrDowngradeNotAllowed if the new tier is lower than the current tier.
+func (t *Tenant) UpgradePlan(newTier PlanTier) error {
+	if newTier == t.Plan.Tier {
+		return ErrSameTierUpgrade
+	}
+	if tierRank[newTier] < tierRank[t.Plan.Tier] {
+		return ErrDowngradeNotAllowed
+	}
+	newPlan := PlanFromTier(newTier)
+	oldTier := t.Plan.Tier
+	t.Plan = newPlan
+	t.SubscriptionStatus = SubscriptionActive
+	t.TrialEndsAt = nil
+	t.UpdatedAt = time.Now().UTC()
+	t.events = append(t.events, PlanUpgradedEvent{
+		TenantID:   t.ID,
+		OldTier:    oldTier,
+		NewTier:    newTier,
+		OccurredAt: t.UpdatedAt,
+	})
+	return nil
+}
+
+// CancelSubscription marks the subscription as cancelled.
+// Returns ErrSubscriptionAlreadyCancelled if already cancelled.
+func (t *Tenant) CancelSubscription() error {
+	if t.SubscriptionStatus == SubscriptionCancelled {
+		return ErrSubscriptionAlreadyCancelled
+	}
+	t.SubscriptionStatus = SubscriptionCancelled
+	t.TrialEndsAt = nil
+	t.UpdatedAt = time.Now().UTC()
+	t.events = append(t.events, SubscriptionCancelledEvent{
+		TenantID:   t.ID,
+		OccurredAt: t.UpdatedAt,
+	})
+	return nil
 }

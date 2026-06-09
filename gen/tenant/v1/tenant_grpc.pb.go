@@ -23,6 +23,7 @@ const (
 	TenantService_GetTenant_FullMethodName    = "/tenant.v1.TenantService/GetTenant"
 	TenantService_CreateBranch_FullMethodName = "/tenant.v1.TenantService/CreateBranch"
 	TenantService_ListBranches_FullMethodName = "/tenant.v1.TenantService/ListBranches"
+	TenantService_UpdatePlan_FullMethodName   = "/tenant.v1.TenantService/UpdatePlan"
 )
 
 // TenantServiceClient is the client API for TenantService service.
@@ -35,6 +36,7 @@ type TenantServiceClient interface {
 	GetTenant(ctx context.Context, in *GetTenantRequest, opts ...grpc.CallOption) (*GetTenantResponse, error)
 	CreateBranch(ctx context.Context, in *CreateBranchRequest, opts ...grpc.CallOption) (*CreateBranchResponse, error)
 	ListBranches(ctx context.Context, in *ListBranchesRequest, opts ...grpc.CallOption) (*ListBranchesResponse, error)
+	UpdatePlan(ctx context.Context, in *UpdatePlanRequest, opts ...grpc.CallOption) (*UpdatePlanResponse, error)
 }
 
 type tenantServiceClient struct {
@@ -85,6 +87,16 @@ func (c *tenantServiceClient) ListBranches(ctx context.Context, in *ListBranches
 	return out, nil
 }
 
+func (c *tenantServiceClient) UpdatePlan(ctx context.Context, in *UpdatePlanRequest, opts ...grpc.CallOption) (*UpdatePlanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdatePlanResponse)
+	err := c.cc.Invoke(ctx, TenantService_UpdatePlan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TenantServiceServer is the server API for TenantService service.
 // All implementations should embed UnimplementedTenantServiceServer
 // for forward compatibility.
@@ -95,6 +107,7 @@ type TenantServiceServer interface {
 	GetTenant(context.Context, *GetTenantRequest) (*GetTenantResponse, error)
 	CreateBranch(context.Context, *CreateBranchRequest) (*CreateBranchResponse, error)
 	ListBranches(context.Context, *ListBranchesRequest) (*ListBranchesResponse, error)
+	UpdatePlan(context.Context, *UpdatePlanRequest) (*UpdatePlanResponse, error)
 }
 
 // UnimplementedTenantServiceServer should be embedded to have
@@ -115,6 +128,9 @@ func (UnimplementedTenantServiceServer) CreateBranch(context.Context, *CreateBra
 }
 func (UnimplementedTenantServiceServer) ListBranches(context.Context, *ListBranchesRequest) (*ListBranchesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBranches not implemented")
+}
+func (UnimplementedTenantServiceServer) UpdatePlan(context.Context, *UpdatePlanRequest) (*UpdatePlanResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdatePlan not implemented")
 }
 func (UnimplementedTenantServiceServer) testEmbeddedByValue() {}
 
@@ -208,6 +224,24 @@ func _TenantService_ListBranches_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TenantService_UpdatePlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePlanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TenantServiceServer).UpdatePlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TenantService_UpdatePlan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TenantServiceServer).UpdatePlan(ctx, req.(*UpdatePlanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TenantService_ServiceDesc is the grpc.ServiceDesc for TenantService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -230,6 +264,10 @@ var TenantService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListBranches",
 			Handler:    _TenantService_ListBranches_Handler,
+		},
+		{
+			MethodName: "UpdatePlan",
+			Handler:    _TenantService_UpdatePlan_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

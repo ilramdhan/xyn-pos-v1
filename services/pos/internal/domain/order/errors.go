@@ -13,4 +13,5 @@ var (
 	ErrShiftNotFound           = errors.New("shift not found")
 	ErrShiftAlreadyClosed      = errors.New("shift is already closed")
 	ErrShiftAlreadyOpen        = errors.New("cashier already has an open shift at this branch")
+	ErrOrderNotParked          = errors.New("order is not in parked status")
 )

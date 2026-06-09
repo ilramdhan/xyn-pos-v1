@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -19,30 +20,39 @@ import (
 // PaymentHandler implements paymentv1.PaymentServiceServer.
 type PaymentHandler struct {
 	paymentv1.UnimplementedPaymentServiceServer
-	initiateH   *command.InitiatePaymentHandler
-	voidH       *command.VoidPaymentHandler
-	getH        *query.GetPaymentHandler
-	getByOrderH *query.GetPaymentByOrderHandler
+	initiateH          *command.InitiatePaymentHandler
+	voidH              *command.VoidPaymentHandler
+	refundH            *command.RefundPaymentHandler
+	getH               *query.GetPaymentHandler
+	getByOrderH        *query.GetPaymentByOrderHandler
+	getReceiptH        *query.GetReceiptHandler
+	getReceiptByOrderH *query.GetReceiptByOrderHandler
 }
 
 // NewPaymentHandler assembles the handler.
 func NewPaymentHandler(
 	initiateH *command.InitiatePaymentHandler,
 	voidH *command.VoidPaymentHandler,
+	refundH *command.RefundPaymentHandler,
 	getH *query.GetPaymentHandler,
 	getByOrderH *query.GetPaymentByOrderHandler,
+	getReceiptH *query.GetReceiptHandler,
+	getReceiptByOrderH *query.GetReceiptByOrderHandler,
 ) *PaymentHandler {
 	return &PaymentHandler{
-		initiateH:   initiateH,
-		voidH:       voidH,
-		getH:        getH,
-		getByOrderH: getByOrderH,
+		initiateH:          initiateH,
+		voidH:              voidH,
+		refundH:            refundH,
+		getH:               getH,
+		getByOrderH:        getByOrderH,
+		getReceiptH:        getReceiptH,
+		getReceiptByOrderH: getReceiptByOrderH,
 	}
 }
 
 // InitiatePayment starts a new payment and returns the snap token.
 func (h *PaymentHandler) InitiatePayment(ctx context.Context, req *paymentv1.InitiatePaymentRequest) (*paymentv1.InitiatePaymentResponse, error) {
-	tenantID, err := tenantIDFromContext(ctx, "")
+	tenantID, err := tenantIDFromContext(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "missing tenant context")
 	}
@@ -97,8 +107,38 @@ func (h *PaymentHandler) VoidPayment(ctx context.Context, req *paymentv1.VoidPay
 	return &paymentv1.VoidPaymentResponse{}, nil
 }
 
+// RefundPayment processes a refund for a successful payment.
+func (h *PaymentHandler) RefundPayment(ctx context.Context, req *paymentv1.RefundPaymentRequest) (*paymentv1.RefundPaymentResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+
+	paymentID, err := uuid.Parse(req.PaymentId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
+	}
+	if req.RefundAmount <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "refund_amount must be > 0")
+	}
+
+	if err := h.refundH.Handle(ctx, command.RefundPaymentInput{
+		PaymentID:    paymentID,
+		TenantID:     claims.TenantID,
+		RefundAmount: req.RefundAmount,
+		Reason:       req.Reason,
+	}); err != nil {
+		return nil, mapPaymentError(err)
+	}
+	return &paymentv1.RefundPaymentResponse{}, nil
+}
+
 // GetPayment retrieves a payment by ID.
 func (h *PaymentHandler) GetPayment(ctx context.Context, req *paymentv1.GetPaymentRequest) (*paymentv1.GetPaymentResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
 	id, err := uuid.Parse(req.PaymentId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
@@ -108,16 +148,18 @@ func (h *PaymentHandler) GetPayment(ctx context.Context, req *paymentv1.GetPayme
 		return nil, mapPaymentError(err)
 	}
 	// Verify tenant ownership — return NotFound to avoid existence oracle.
-	if claims, ok := claimsFromContext(ctx); ok {
-		if p.TenantID != claims.TenantID {
-			return nil, status.Error(codes.NotFound, "payment not found")
-		}
+	if p.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "payment not found")
 	}
 	return &paymentv1.GetPaymentResponse{Payment: domainToProto(p)}, nil
 }
 
 // GetPaymentByOrder retrieves the payment for an order.
 func (h *PaymentHandler) GetPaymentByOrder(ctx context.Context, req *paymentv1.GetPaymentByOrderRequest) (*paymentv1.GetPaymentByOrderResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
 	orderID, err := uuid.Parse(req.OrderId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
@@ -127,10 +169,8 @@ func (h *PaymentHandler) GetPaymentByOrder(ctx context.Context, req *paymentv1.G
 		return nil, mapPaymentError(err)
 	}
 	// Verify tenant ownership — return NotFound to avoid existence oracle.
-	if claims, ok := claimsFromContext(ctx); ok {
-		if p.TenantID != claims.TenantID {
-			return nil, status.Error(codes.NotFound, "payment not found")
-		}
+	if p.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "payment not found")
 	}
 	return &paymentv1.GetPaymentByOrderResponse{Payment: domainToProto(p)}, nil
 }
@@ -142,17 +182,14 @@ func claimsFromContext(ctx context.Context) (*sharedauth.Claims, bool) {
 	return middleware.ClaimsFromContext(ctx)
 }
 
-// tenantIDFromContext returns the tenant UUID from JWT claims when available,
-// or parses fallbackRaw in dev/test mode. Returns an error if both paths fail.
-func tenantIDFromContext(ctx context.Context, fallbackRaw string) (uuid.UUID, error) {
-	if claims, ok := claimsFromContext(ctx); ok {
-		return claims.TenantID, nil
+// tenantIDFromContext returns the tenant UUID from verified JWT claims.
+// Returns Unauthenticated if claims are absent.
+func tenantIDFromContext(ctx context.Context) (uuid.UUID, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return uuid.Nil, status.Error(codes.Unauthenticated, "authentication required")
 	}
-	id, err := uuid.Parse(fallbackRaw)
-	if err != nil {
-		return uuid.Nil, errors.New("invalid tenant_id")
-	}
-	return id, nil
+	return claims.TenantID, nil
 }
 
 func domainToProto(p *payment.Payment) *paymentv1.Payment {
@@ -167,8 +204,8 @@ func domainToProto(p *payment.Payment) *paymentv1.Payment {
 		SnapToken:       p.SnapToken,
 		SnapRedirectUrl: p.SnapRedirectURL,
 		IdempotencyKey:  p.IdempotencyKey,
-		CreatedAt:       p.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:       p.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:       p.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:       p.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -182,6 +219,8 @@ func domainStatusToProto(s payment.PaymentStatus) paymentv1.PaymentStatus {
 		return paymentv1.PaymentStatus_PAYMENT_STATUS_FAILED
 	case payment.StatusVoided:
 		return paymentv1.PaymentStatus_PAYMENT_STATUS_VOIDED
+	case payment.StatusRefunded:
+		return paymentv1.PaymentStatus_PAYMENT_STATUS_REFUNDED
 	default:
 		return paymentv1.PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
 	}
@@ -229,7 +268,69 @@ func mapPaymentError(err error) error {
 		return status.Error(codes.AlreadyExists, "duplicate idempotency key")
 	case errors.Is(err, payment.ErrGatewayFailure):
 		return status.Error(codes.Unavailable, "payment gateway unavailable")
+	case errors.Is(err, payment.ErrPartialRefundInvalid):
+		return status.Error(codes.InvalidArgument, "invalid refund amount")
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}
+}
+
+// GetReceipt retrieves a receipt by payment ID.
+func (h *PaymentHandler) GetReceipt(ctx context.Context, req *paymentv1.GetReceiptRequest) (*paymentv1.GetReceiptResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+	paymentID, err := uuid.Parse(req.PaymentId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid payment_id")
+	}
+	r, err := h.getReceiptH.Handle(ctx, paymentID)
+	if err != nil {
+		return nil, mapReceiptError(err)
+	}
+	if r.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "receipt not found")
+	}
+	return &paymentv1.GetReceiptResponse{Receipt: receiptToProto(r)}, nil
+}
+
+// GetReceiptByOrder retrieves a receipt by order ID.
+func (h *PaymentHandler) GetReceiptByOrder(ctx context.Context, req *paymentv1.GetReceiptByOrderRequest) (*paymentv1.GetReceiptByOrderResponse, error) {
+	claims, ok := claimsFromContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+	r, err := h.getReceiptByOrderH.Handle(ctx, orderID)
+	if err != nil {
+		return nil, mapReceiptError(err)
+	}
+	if r.TenantID != claims.TenantID {
+		return nil, status.Error(codes.NotFound, "receipt not found")
+	}
+	return &paymentv1.GetReceiptByOrderResponse{Receipt: receiptToProto(r)}, nil
+}
+
+func receiptToProto(r *payment.Receipt) *paymentv1.Receipt {
+	return &paymentv1.Receipt{
+		Id:            r.ID.String(),
+		PaymentId:     r.PaymentID.String(),
+		OrderId:       r.OrderID.String(),
+		TenantId:      r.TenantID.String(),
+		ReceiptNumber: r.ReceiptNumber,
+		Amount:        r.Amount,
+		Method:        domainMethodToProto(r.Method),
+		IssuedAt:      r.IssuedAt.UTC().Format(time.RFC3339),
+	}
+}
+
+func mapReceiptError(err error) error {
+	if errors.Is(err, payment.ErrReceiptNotFound) {
+		return status.Error(codes.NotFound, "receipt not found")
+	}
+	return status.Error(codes.Internal, "internal error")
 }

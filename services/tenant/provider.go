@@ -62,6 +62,7 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 	createBranchH := command.NewCreateBranchHandler(tenantRepo)
 	getTenantH := query.NewGetTenantHandler(tenantRepo)
 	listBranchesH := query.NewListBranchesHandler(tenantRepo)
+	updatePlanH := command.NewUpdatePlanHandler(tenantRepo)
 
 	// 5. User infrastructure
 	kcClient := keycloak.NewClient(keycloak.Config{
@@ -95,7 +96,7 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 	listUsersH := query.NewListUsersHandler(userRepo)
 
 	// 7. Interface layer
-	tenantHandler := grpchandler.NewTenantHandler(createTenantH, createBranchH, getTenantH, listBranchesH)
+	tenantHandler := grpchandler.NewTenantHandler(createTenantH, createBranchH, getTenantH, listBranchesH, updatePlanH)
 	userHandler := grpchandler.NewUserHandler(
 		registerUserH, loginUserH, logoutH,
 		setPINH, verifyPINH, deactivateH,

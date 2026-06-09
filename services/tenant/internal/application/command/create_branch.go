@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -11,11 +12,10 @@ import (
 
 // CreateBranchCommand carries the input for adding a branch to a tenant.
 type CreateBranchCommand struct {
-	IdempotencyKey string
-	TenantID       uuid.UUID
-	Name           string
-	Address        domain.Address
-	Timezone       string
+	TenantID uuid.UUID
+	Name     string
+	Address  domain.Address
+	Timezone string
 }
 
 // CreateBranchHandler handles the CreateBranch command.
@@ -33,6 +33,11 @@ func (h *CreateBranchHandler) Handle(ctx context.Context, cmd CreateBranchComman
 	t, err := h.repo.FindByID(ctx, cmd.TenantID)
 	if err != nil {
 		return nil, fmt.Errorf("CreateBranchHandler.FindByID: %w", err)
+	}
+
+	// Guard: tenant must have an active subscription to add branches.
+	if err := t.CheckSubscriptionAccess(time.Now()); err != nil {
+		return nil, fmt.Errorf("CreateBranchHandler.CheckSubscriptionAccess: %w", err)
 	}
 
 	tz := cmd.Timezone

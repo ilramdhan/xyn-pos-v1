@@ -87,6 +87,8 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 	applyDiscountH := command.NewApplyDiscountHandler(orderRepo)
 	submitOrderH := command.NewSubmitOrderHandler(orderRepo)
 	cancelOrderH := command.NewCancelOrderHandler(orderRepo, kafkaPublisher)
+	parkOrderH := command.NewParkOrderHandler(orderRepo, kafkaPublisher)
+	resumeOrderH := command.NewResumeOrderHandler(orderRepo, kafkaPublisher)
 	markOrderPaidH := command.NewMarkOrderPaidHandler(orderRepo, kafkaPublisher)
 	openShiftH := command.NewOpenShiftHandler(shiftRepo)
 	closeShiftH := command.NewCloseShiftHandler(shiftRepo)
@@ -97,6 +99,7 @@ func New(ctx context.Context, cfg *Config) (*App, error) {
 	orderHandler := grpchandler.NewOrderHandler(
 		createOrderH, addItemH, removeItemH, updateQtyH,
 		applyDiscountH, submitOrderH, cancelOrderH,
+		parkOrderH, resumeOrderH,
 		openShiftH, closeShiftH,
 		getOrderH, listOrdersH, getShiftH,
 	)

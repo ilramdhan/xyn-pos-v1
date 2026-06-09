@@ -31,3 +31,28 @@ type PaymentVoidedEvent struct {
 }
 
 func (PaymentVoidedEvent) paymentEvent() {}
+
+// ReceiptIssuedEvent is published when a receipt is generated for a successful payment.
+type ReceiptIssuedEvent struct {
+	ReceiptID     uuid.UUID
+	PaymentID     uuid.UUID
+	OrderID       uuid.UUID
+	TenantID      uuid.UUID
+	ReceiptNumber string
+	Amount        int64
+	Method        PaymentMethod
+	OccurredAt    time.Time
+}
+
+func (ReceiptIssuedEvent) paymentEvent() {}
+
+// PaymentRefundedEvent is published when a payment is fully or partially refunded.
+type PaymentRefundedEvent struct {
+	PaymentID      uuid.UUID
+	OrderID        uuid.UUID
+	TenantID       uuid.UUID
+	RefundedAmount int64
+	OccurredAt     time.Time
+}
+
+func (PaymentRefundedEvent) paymentEvent() {}

@@ -21,6 +21,7 @@ import (
 // Compile-time interface assertions — fail fast if infrastructure diverges from contracts.
 var _ command.IdempotencyStore = (*redisinfra.IdempotencyStore)(nil)
 var _ command.PaymentEventPublisher = (*kafkainfra.EventPublisher)(nil)
+var _ command.ReceiptEventPublisher = (*kafkainfra.EventPublisher)(nil)
 var _ domainpayment.PaymentGateway = (*midtransinfra.MidtransGateway)(nil)
 var _ domainpayment.PaymentGateway = (*midtransinfra.NoopGateway)(nil)
 
@@ -68,15 +69,19 @@ func NewServer(cfg *Config) (*App, error) {
 
 	// Repositories
 	paymentRepo := postgresinfra.NewPaymentRepository(pool)
+	receiptRepo := postgresinfra.NewReceiptRepository(pool)
 
 	// Application: commands
 	initiateH := command.NewInitiatePaymentHandler(paymentRepo, gw, redisSt)
 	voidH := command.NewVoidPaymentHandler(paymentRepo, gw, kafkaPub)
-	webhookH := command.NewHandleWebhookHandler(paymentRepo, kafkaPub)
+	refundH := command.NewRefundPaymentHandler(paymentRepo, gw, kafkaPub)
+	webhookH := command.NewHandleWebhookHandler(paymentRepo, kafkaPub, receiptRepo, kafkaPub)
 
 	// Application: queries
 	getH := query.NewGetPaymentHandler(paymentRepo)
 	getByOrderH := query.NewGetPaymentByOrderHandler(paymentRepo)
+	getReceiptH := query.NewGetReceiptHandler(receiptRepo)
+	getReceiptByOrderH := query.NewGetReceiptByOrderHandler(receiptRepo)
 
 	// PASETO verifier for gRPC auth middleware
 	var verifyFn sharedauth.VerifyFunc
@@ -91,7 +96,7 @@ func NewServer(cfg *Config) (*App, error) {
 	}
 
 	// Interfaces: gRPC
-	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, getH, getByOrderH)
+	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, refundH, getH, getByOrderH, getReceiptH, getReceiptByOrderH)
 	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, grpcHdlr, verifyFn)
 
 	// Interfaces: HTTP (Midtrans webhook)
@@ -126,18 +131,19 @@ func (a *App) Run(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		a.Stop()
+		a.Stop(ctx)
 		return ctx.Err()
 	case err := <-errCh:
-		a.Stop()
+		a.Stop(ctx)
 		return err
 	}
 }
 
 // Stop gracefully shuts down all service components.
-func (a *App) Stop() {
+// The provided context deadline is respected during HTTP server shutdown.
+func (a *App) Stop(ctx context.Context) {
 	a.grpcSrv.GracefulStop()
-	_ = a.httpSrv.Shutdown(context.Background())
+	_ = a.httpSrv.Shutdown(ctx)
 	a.kafka.Close()
 	_ = a.redisSt.Close()
 	a.pool.Close()

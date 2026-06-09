@@ -26,6 +26,8 @@ const (
 	OrderService_ApplyDiscount_FullMethodName      = "/pos.v1.OrderService/ApplyDiscount"
 	OrderService_SubmitOrder_FullMethodName        = "/pos.v1.OrderService/SubmitOrder"
 	OrderService_CancelOrder_FullMethodName        = "/pos.v1.OrderService/CancelOrder"
+	OrderService_ParkOrder_FullMethodName          = "/pos.v1.OrderService/ParkOrder"
+	OrderService_ResumeOrder_FullMethodName        = "/pos.v1.OrderService/ResumeOrder"
 	OrderService_GetOrder_FullMethodName           = "/pos.v1.OrderService/GetOrder"
 	OrderService_ListOrders_FullMethodName         = "/pos.v1.OrderService/ListOrders"
 	OrderService_OpenShift_FullMethodName          = "/pos.v1.OrderService/OpenShift"
@@ -46,6 +48,8 @@ type OrderServiceClient interface {
 	ApplyDiscount(ctx context.Context, in *ApplyDiscountRequest, opts ...grpc.CallOption) (*ApplyDiscountResponse, error)
 	SubmitOrder(ctx context.Context, in *SubmitOrderRequest, opts ...grpc.CallOption) (*SubmitOrderResponse, error)
 	CancelOrder(ctx context.Context, in *CancelOrderRequest, opts ...grpc.CallOption) (*CancelOrderResponse, error)
+	ParkOrder(ctx context.Context, in *ParkOrderRequest, opts ...grpc.CallOption) (*ParkOrderResponse, error)
+	ResumeOrder(ctx context.Context, in *ResumeOrderRequest, opts ...grpc.CallOption) (*ResumeOrderResponse, error)
 	GetOrder(ctx context.Context, in *GetOrderRequest, opts ...grpc.CallOption) (*GetOrderResponse, error)
 	ListOrders(ctx context.Context, in *ListOrdersRequest, opts ...grpc.CallOption) (*ListOrdersResponse, error)
 	OpenShift(ctx context.Context, in *OpenShiftRequest, opts ...grpc.CallOption) (*OpenShiftResponse, error)
@@ -131,6 +135,26 @@ func (c *orderServiceClient) CancelOrder(ctx context.Context, in *CancelOrderReq
 	return out, nil
 }
 
+func (c *orderServiceClient) ParkOrder(ctx context.Context, in *ParkOrderRequest, opts ...grpc.CallOption) (*ParkOrderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ParkOrderResponse)
+	err := c.cc.Invoke(ctx, OrderService_ParkOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *orderServiceClient) ResumeOrder(ctx context.Context, in *ResumeOrderRequest, opts ...grpc.CallOption) (*ResumeOrderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResumeOrderResponse)
+	err := c.cc.Invoke(ctx, OrderService_ResumeOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *orderServiceClient) GetOrder(ctx context.Context, in *GetOrderRequest, opts ...grpc.CallOption) (*GetOrderResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetOrderResponse)
@@ -194,6 +218,8 @@ type OrderServiceServer interface {
 	ApplyDiscount(context.Context, *ApplyDiscountRequest) (*ApplyDiscountResponse, error)
 	SubmitOrder(context.Context, *SubmitOrderRequest) (*SubmitOrderResponse, error)
 	CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error)
+	ParkOrder(context.Context, *ParkOrderRequest) (*ParkOrderResponse, error)
+	ResumeOrder(context.Context, *ResumeOrderRequest) (*ResumeOrderResponse, error)
 	GetOrder(context.Context, *GetOrderRequest) (*GetOrderResponse, error)
 	ListOrders(context.Context, *ListOrdersRequest) (*ListOrdersResponse, error)
 	OpenShift(context.Context, *OpenShiftRequest) (*OpenShiftResponse, error)
@@ -228,6 +254,12 @@ func (UnimplementedOrderServiceServer) SubmitOrder(context.Context, *SubmitOrder
 }
 func (UnimplementedOrderServiceServer) CancelOrder(context.Context, *CancelOrderRequest) (*CancelOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CancelOrder not implemented")
+}
+func (UnimplementedOrderServiceServer) ParkOrder(context.Context, *ParkOrderRequest) (*ParkOrderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ParkOrder not implemented")
+}
+func (UnimplementedOrderServiceServer) ResumeOrder(context.Context, *ResumeOrderRequest) (*ResumeOrderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResumeOrder not implemented")
 }
 func (UnimplementedOrderServiceServer) GetOrder(context.Context, *GetOrderRequest) (*GetOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrder not implemented")
@@ -390,6 +422,42 @@ func _OrderService_CancelOrder_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrderService_ParkOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ParkOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).ParkOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_ParkOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).ParkOrder(ctx, req.(*ParkOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrderService_ResumeOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrderServiceServer).ResumeOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrderService_ResumeOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrderServiceServer).ResumeOrder(ctx, req.(*ResumeOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrderService_GetOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetOrderRequest)
 	if err := dec(in); err != nil {
@@ -514,6 +582,14 @@ var OrderService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelOrder",
 			Handler:    _OrderService_CancelOrder_Handler,
+		},
+		{
+			MethodName: "ParkOrder",
+			Handler:    _OrderService_ParkOrder_Handler,
+		},
+		{
+			MethodName: "ResumeOrder",
+			Handler:    _OrderService_ResumeOrder_Handler,
 		},
 		{
 			MethodName: "GetOrder",

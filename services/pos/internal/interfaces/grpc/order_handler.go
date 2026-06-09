@@ -24,6 +24,8 @@ type OrderHandler struct {
 	applyDiscountH      *command.ApplyDiscountHandler
 	submitOrderH        *command.SubmitOrderHandler
 	cancelOrderH        *command.CancelOrderHandler
+	parkOrderH          *command.ParkOrderHandler
+	resumeOrderH        *command.ResumeOrderHandler
 	openShiftH          *command.OpenShiftHandler
 	closeShiftH         *command.CloseShiftHandler
 	getOrderH           *query.GetOrderHandler
@@ -40,6 +42,8 @@ func NewOrderHandler(
 	discountH *command.ApplyDiscountHandler,
 	submitH *command.SubmitOrderHandler,
 	cancelH *command.CancelOrderHandler,
+	parkH *command.ParkOrderHandler,
+	resumeH *command.ResumeOrderHandler,
 	openShiftH *command.OpenShiftHandler,
 	closeShiftH *command.CloseShiftHandler,
 	getOrderH *query.GetOrderHandler,
@@ -54,6 +58,8 @@ func NewOrderHandler(
 		applyDiscountH:      discountH,
 		submitOrderH:        submitH,
 		cancelOrderH:        cancelH,
+		parkOrderH:          parkH,
+		resumeOrderH:        resumeH,
 		openShiftH:          openShiftH,
 		closeShiftH:         closeShiftH,
 		getOrderH:           getOrderH,
@@ -244,6 +250,35 @@ func (h *OrderHandler) CancelOrder(ctx context.Context, req *posv1.CancelOrderRe
 		return nil, mapOrderError(err)
 	}
 	return &posv1.CancelOrderResponse{}, nil
+}
+
+func (h *OrderHandler) ParkOrder(ctx context.Context, req *posv1.ParkOrderRequest) (*posv1.ParkOrderResponse, error) {
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
+	}
+	if err := h.parkOrderH.Handle(ctx, orderID); err != nil {
+		return nil, mapOrderError(err)
+	}
+	return &posv1.ParkOrderResponse{}, nil
+}
+
+func (h *OrderHandler) ResumeOrder(ctx context.Context, req *posv1.ResumeOrderRequest) (*posv1.ResumeOrderResponse, error) {
+	orderID, err := uuid.Parse(req.OrderId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+	}
+	if err := h.assertOrderTenant(ctx, orderID); err != nil {
+		return nil, err
+	}
+	o, err := h.resumeOrderH.Handle(ctx, orderID)
+	if err != nil {
+		return nil, mapOrderError(err)
+	}
+	return &posv1.ResumeOrderResponse{Order: domainOrderToProto(o)}, nil
 }
 
 func (h *OrderHandler) GetOrder(ctx context.Context, req *posv1.GetOrderRequest) (*posv1.GetOrderResponse, error) {
@@ -443,6 +478,8 @@ func domainOrderStatusToProto(s order.OrderStatus) posv1.OrderStatus {
 		return posv1.OrderStatus_ORDER_STATUS_PAID
 	case order.StatusCancelled:
 		return posv1.OrderStatus_ORDER_STATUS_CANCELLED
+	case order.StatusParked:
+		return posv1.OrderStatus_ORDER_STATUS_PARKED
 	default:
 		return posv1.OrderStatus_ORDER_STATUS_UNSPECIFIED
 	}
@@ -458,6 +495,8 @@ func protoOrderStatusToDomain(s posv1.OrderStatus) order.OrderStatus {
 		return order.StatusPaid
 	case posv1.OrderStatus_ORDER_STATUS_CANCELLED:
 		return order.StatusCancelled
+	case posv1.OrderStatus_ORDER_STATUS_PARKED:
+		return order.StatusParked
 	default:
 		return order.StatusDraft
 	}
@@ -507,6 +546,8 @@ func mapOrderError(err error) error {
 		return status.Error(codes.InvalidArgument, "discount exceeds order subtotal")
 	case errors.Is(err, order.ErrDiscountPercentInvalid):
 		return status.Error(codes.InvalidArgument, "percent discount must be 0.01%–100%")
+	case errors.Is(err, order.ErrOrderNotParked):
+		return status.Error(codes.FailedPrecondition, "order is not in parked status")
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}

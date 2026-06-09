@@ -34,15 +34,17 @@ func (r *PaymentRepository) Save(ctx context.Context, p *payment.Payment) error 
 		INSERT INTO payments
 			(id, tenant_id, order_id, amount, status, method,
 			 external_id, snap_token, snap_redirect_url, idempotency_key,
+			 refunded_amount, refund_reason,
 			 created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`
 
 	err := withTenantTx(ctx, r.pool, p.TenantID, func(tx pgx.Tx) error {
 		_, err := tx.Exec(ctx, q,
 			p.ID, p.TenantID, p.OrderID, p.Amount,
 			string(p.Status), string(p.Method),
 			p.ExternalID, p.SnapToken, p.SnapRedirectURL,
-			p.IdempotencyKey, p.CreatedAt, p.UpdatedAt,
+			p.IdempotencyKey, p.RefundedAmount, p.RefundReason,
+			p.CreatedAt, p.UpdatedAt,
 		)
 		return err
 	})
@@ -63,15 +65,17 @@ func (r *PaymentRepository) Update(ctx context.Context, p *payment.Payment) erro
 			external_id       = $2,
 			snap_token        = $3,
 			snap_redirect_url = $4,
-			updated_at        = $5
-		WHERE id = $6`
+			refunded_amount   = $5,
+			refund_reason     = $6,
+			updated_at        = $7
+		WHERE id = $8`
 
 	p.UpdatedAt = time.Now().UTC()
 
 	err := withTenantTx(ctx, r.pool, p.TenantID, func(tx pgx.Tx) error {
 		ct, err := tx.Exec(ctx, q,
 			string(p.Status), p.ExternalID, p.SnapToken, p.SnapRedirectURL,
-			p.UpdatedAt, p.ID,
+			p.RefundedAmount, p.RefundReason, p.UpdatedAt, p.ID,
 		)
 		if err != nil {
 			return err
@@ -88,12 +92,15 @@ func (r *PaymentRepository) Update(ctx context.Context, p *payment.Payment) erro
 }
 
 // FindByID retrieves a payment by primary key.
-// RLS is enforced by the session variable set in the gRPC middleware; a
-// cross-tenant row is invisible and returns ErrPaymentNotFound.
+// Note: this query runs outside withTenantTx because callers (e.g. Midtrans webhook handler)
+// may not have a tenant context. Cross-tenant isolation is enforced at the interface layer:
+// every gRPC handler verifies p.TenantID == claims.TenantID after this call.
+// TODO(phase5): add tenantID param and wrap in withTenantTx once webhook handler carries tenant context.
 func (r *PaymentRepository) FindByID(ctx context.Context, id uuid.UUID) (*payment.Payment, error) {
 	const q = `
 		SELECT id, tenant_id, order_id, amount, status, method,
 		       external_id, snap_token, snap_redirect_url, idempotency_key,
+		       refunded_amount, refund_reason,
 		       created_at, updated_at
 		FROM payments WHERE id = $1`
 
@@ -109,11 +116,12 @@ func (r *PaymentRepository) FindByID(ctx context.Context, id uuid.UUID) (*paymen
 }
 
 // FindByOrderID retrieves the payment linked to a given order.
-// RLS is enforced by the session variable set in the gRPC middleware.
+// Note: same RLS caveat as FindByID — tenant ownership is verified by the calling handler.
 func (r *PaymentRepository) FindByOrderID(ctx context.Context, orderID uuid.UUID) (*payment.Payment, error) {
 	const q = `
 		SELECT id, tenant_id, order_id, amount, status, method,
 		       external_id, snap_token, snap_redirect_url, idempotency_key,
+		       refunded_amount, refund_reason,
 		       created_at, updated_at
 		FROM payments WHERE order_id = $1`
 
@@ -133,6 +141,7 @@ func (r *PaymentRepository) FindByIdempotencyKey(ctx context.Context, tenantID u
 	const q = `
 		SELECT id, tenant_id, order_id, amount, status, method,
 		       external_id, snap_token, snap_redirect_url, idempotency_key,
+		       refunded_amount, refund_reason,
 		       created_at, updated_at
 		FROM payments WHERE tenant_id = $1 AND idempotency_key = $2`
 
@@ -163,6 +172,7 @@ func scanPayment(row pgx.Row) (*payment.Payment, error) {
 		&p.ID, &p.TenantID, &p.OrderID, &p.Amount,
 		&statusStr, &methodStr,
 		&p.ExternalID, &p.SnapToken, &p.SnapRedirectURL, &p.IdempotencyKey,
+		&p.RefundedAmount, &p.RefundReason,
 		&p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
