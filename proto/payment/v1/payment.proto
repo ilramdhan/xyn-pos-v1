@@ -58,7 +58,7 @@ message VoidPaymentResponse {}
 
 message RefundPaymentRequest {
   string payment_id = 1;
-  int64  refund_amount = 2;
+  int64 refund_amount = 2;
   string reason = 3;
 }
 message RefundPaymentResponse {}
