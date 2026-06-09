@@ -24,11 +24,46 @@ func TestGenerateReceipt_FromSuccessfulPayment(t *testing.T) {
 	assert.False(t, r.IssuedAt.IsZero())
 }
 
-func TestGenerateReceipt_FromPendingPayment_ReturnsError(t *testing.T) {
-	p, err := payment.NewPayment(uuid.New(), uuid.New(), 100000, payment.MethodQRIS, "idem-rcpt-001")
-	require.NoError(t, err)
-	_, err = payment.GenerateReceipt(p)
-	assert.ErrorIs(t, err, payment.ErrReceiptNotAllowed)
+func TestGenerateReceipt_NonSuccessPayment_ReturnsError(t *testing.T) {
+	tenantID := uuid.New()
+	orderID := uuid.New()
+
+	tests := []struct {
+		name  string
+		setup func() *payment.Payment
+	}{
+		{
+			name: "pending",
+			setup: func() *payment.Payment {
+				p, _ := payment.NewPayment(tenantID, orderID, 100000, payment.MethodQRIS, "idem-ns-1")
+				return p
+			},
+		},
+		{
+			name: "failed",
+			setup: func() *payment.Payment {
+				p, _ := payment.NewPayment(tenantID, orderID, 100000, payment.MethodQRIS, "idem-ns-2")
+				_ = p.MarkFailed()
+				return p
+			},
+		},
+		{
+			name: "voided",
+			setup: func() *payment.Payment {
+				p, _ := payment.NewPayment(tenantID, orderID, 100000, payment.MethodQRIS, "idem-ns-3")
+				_ = p.MarkSuccess("ext-void-001")
+				_ = p.Void("test void", uuid.New())
+				return p
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := payment.GenerateReceipt(tc.setup())
+			assert.ErrorIs(t, err, payment.ErrReceiptNotAllowed)
+		})
+	}
 }
 
 func TestGenerateReceipt_PopEvents_ReturnsReceiptIssuedEvent(t *testing.T) {
@@ -42,6 +77,8 @@ func TestGenerateReceipt_PopEvents_ReturnsReceiptIssuedEvent(t *testing.T) {
 	assert.Equal(t, r.ID, ev.ReceiptID)
 	assert.Equal(t, r.PaymentID, ev.PaymentID)
 	assert.Equal(t, r.TenantID, ev.TenantID)
+	// Second pop must return empty — slice must be cleared.
+	assert.Empty(t, r.PopEvents())
 }
 
 func newSuccessfulPayment(t *testing.T) *payment.Payment {

@@ -1,7 +1,6 @@
 package payment
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -21,25 +20,19 @@ type Receipt struct {
 	events        []DomainEvent
 }
 
-// ReceiptRepository is the persistence port for Receipt aggregates.
-type ReceiptRepository interface {
-	Save(ctx context.Context, r *Receipt) error
-	FindByPaymentID(ctx context.Context, paymentID uuid.UUID) (*Receipt, error)
-	FindByOrderID(ctx context.Context, orderID uuid.UUID) (*Receipt, error)
-}
-
 // GenerateReceipt creates a Receipt from a successful Payment.
 func GenerateReceipt(p *Payment) (*Receipt, error) {
 	if p.Status != StatusSuccess {
-		return nil, fmt.Errorf("GenerateReceipt: %w", ErrReceiptNotAllowed)
+		return nil, ErrReceiptNotAllowed
 	}
 	now := time.Now().UTC()
+	receiptID := uuid.New()
 	r := &Receipt{
-		ID:            uuid.New(),
+		ID:            receiptID,
 		PaymentID:     p.ID,
 		OrderID:       p.OrderID,
 		TenantID:      p.TenantID,
-		ReceiptNumber: fmt.Sprintf("RCP-%s", p.ID.String()[:8]),
+		ReceiptNumber: fmt.Sprintf("RCP-%s", receiptID.String()[:13]),
 		Amount:        p.Amount,
 		Method:        p.Method,
 		IssuedAt:      now,

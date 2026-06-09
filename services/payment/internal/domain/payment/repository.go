@@ -14,3 +14,10 @@ type PaymentRepository interface {
 	Save(ctx context.Context, p *Payment) error
 	Update(ctx context.Context, p *Payment) error
 }
+
+// ReceiptRepository is the persistence port for Receipt aggregates.
+type ReceiptRepository interface {
+	Save(ctx context.Context, r *Receipt) error
+	FindByPaymentID(ctx context.Context, paymentID uuid.UUID) (*Receipt, error)
+	FindByOrderID(ctx context.Context, orderID uuid.UUID) (*Receipt, error)
+}
