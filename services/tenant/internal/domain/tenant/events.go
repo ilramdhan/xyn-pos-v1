@@ -33,3 +33,21 @@ type BranchAddedEvent struct {
 
 // EventType returns the event type identifier.
 func (e BranchAddedEvent) EventType() string { return "tenant.branch_added" }
+
+// PlanUpgradedEvent is fired when a tenant upgrades their plan.
+type PlanUpgradedEvent struct {
+	TenantID   uuid.UUID
+	OldTier    PlanTier
+	NewTier    PlanTier
+	OccurredAt time.Time
+}
+
+func (e PlanUpgradedEvent) EventType() string { return "tenant.plan_upgraded" }
+
+// SubscriptionCancelledEvent is fired when a tenant cancels their subscription.
+type SubscriptionCancelledEvent struct {
+	TenantID   uuid.UUID
+	OccurredAt time.Time
+}
+
+func (e SubscriptionCancelledEvent) EventType() string { return "tenant.subscription_cancelled" }
