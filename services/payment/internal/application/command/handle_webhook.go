@@ -20,16 +20,25 @@ type WebhookInput struct {
 
 // HandleWebhookHandler processes Midtrans payment notification webhooks.
 type HandleWebhookHandler struct {
-	repo      payment.PaymentRepository
-	publisher PaymentEventPublisher
+	repo        payment.PaymentRepository
+	publisher   PaymentEventPublisher
+	receiptRepo payment.ReceiptRepository
+	receiptPub  ReceiptEventPublisher
 }
 
 // NewHandleWebhookHandler wires the handler.
 func NewHandleWebhookHandler(
 	repo payment.PaymentRepository,
 	publisher PaymentEventPublisher,
+	receiptRepo payment.ReceiptRepository,
+	receiptPub ReceiptEventPublisher,
 ) *HandleWebhookHandler {
-	return &HandleWebhookHandler{repo: repo, publisher: publisher}
+	return &HandleWebhookHandler{
+		repo:        repo,
+		publisher:   publisher,
+		receiptRepo: receiptRepo,
+		receiptPub:  receiptPub,
+	}
 }
 
 // Handle processes a Midtrans webhook and transitions payment state accordingly.
@@ -58,9 +67,33 @@ func (h *HandleWebhookHandler) Handle(ctx context.Context, in WebhookInput) erro
 	}
 
 	for _, ev := range p.PopEvents() {
-		if completed, ok := ev.(payment.PaymentCompletedEvent); ok {
-			if pubErr := h.publisher.PublishCompleted(ctx, completed); pubErr != nil {
-				slog.WarnContext(ctx, "HandleWebhook: failed to publish event", "err", pubErr)
+		switch e := ev.(type) {
+		case payment.PaymentCompletedEvent:
+			if pubErr := h.publisher.PublishCompleted(ctx, e); pubErr != nil {
+				slog.WarnContext(ctx, "HandleWebhook: failed to publish completed event", "err", pubErr)
+			}
+		case payment.PaymentVoidedEvent:
+			if pubErr := h.publisher.PublishVoided(ctx, e); pubErr != nil {
+				slog.WarnContext(ctx, "HandleWebhook: failed to publish voided event", "err", pubErr)
+			}
+		}
+	}
+
+	if p.Status == payment.StatusSuccess {
+		receipt, err := payment.GenerateReceipt(p)
+		if err != nil {
+			slog.WarnContext(ctx, "HandleWebhook: failed to generate receipt", "err", err)
+		} else {
+			if saveErr := h.receiptRepo.Save(ctx, receipt); saveErr != nil {
+				slog.WarnContext(ctx, "HandleWebhook: failed to save receipt", "err", saveErr)
+			} else {
+				for _, ev := range receipt.PopEvents() {
+					if issued, ok := ev.(payment.ReceiptIssuedEvent); ok {
+						if pubErr := h.receiptPub.PublishReceiptIssued(ctx, issued); pubErr != nil {
+							slog.WarnContext(ctx, "HandleWebhook: failed to publish receipt event", "err", pubErr)
+						}
+					}
+				}
 			}
 		}
 	}

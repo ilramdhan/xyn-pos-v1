@@ -14,6 +14,7 @@ import (
 const (
 	topicPaymentCompleted = "payment.completed"
 	topicPaymentVoided    = "payment.voided"
+	topicReceiptIssued    = "receipt.issued"
 )
 
 // EventPublisher publishes payment domain events to Kafka.
@@ -65,6 +66,24 @@ func (p *EventPublisher) PublishVoided(ctx context.Context, ev payment.PaymentVo
 	if err := p.client.ProduceSync(ctx, rec).FirstErr(); err != nil {
 		slog.WarnContext(ctx, "kafka.PublishVoided failed", "err", err)
 		return fmt.Errorf("kafka.PublishVoided produce: %w", err)
+	}
+	return nil
+}
+
+// PublishReceiptIssued publishes a ReceiptIssuedEvent.
+func (p *EventPublisher) PublishReceiptIssued(ctx context.Context, ev payment.ReceiptIssuedEvent) error {
+	payload, err := json.Marshal(ev)
+	if err != nil {
+		return fmt.Errorf("kafka.PublishReceiptIssued marshal: %w", err)
+	}
+	rec := &kgo.Record{
+		Topic: topicReceiptIssued,
+		Key:   []byte(ev.ReceiptID.String()),
+		Value: payload,
+	}
+	if err := p.client.ProduceSync(ctx, rec).FirstErr(); err != nil {
+		slog.WarnContext(ctx, "kafka.PublishReceiptIssued failed", "err", err)
+		return fmt.Errorf("kafka.PublishReceiptIssued produce: %w", err)
 	}
 	return nil
 }
