@@ -1,7 +1,7 @@
 # xyn-pos-v1 — AI Assistant Context
 
 > Read this file completely before making any changes to this codebase.  
-> Last updated: 2026-06-05 | Stack versions pinned below are **authoritative**.
+> Last updated: 2026-06-10 | Stack versions pinned below are **authoritative**.
 
 ---
 
@@ -244,6 +244,7 @@ See `docs/phase-1/error-handling.md` for full taxonomy.
 | `docs/phase-1/database-strategy.md` | RLS, multi-tenancy, offline sync, migrations |
 | `docs/phase-1/hardware-integration.md` | ESC/POS, WebUSB, barcode, cash drawer |
 | `docs/phase-1/rules.md` | Golang rules, testing rules, git workflow |
+| `docs/phase-1/frontend-rules.md` | **Frontend rules — DRY, shared components, testing, naming** |
 | `docs/phase-1/design.md` | UI/UX design system, shadcn/ui, Flutter theme |
 | `docs/phase-1/api-contracts.md` | gRPC proto standards, idempotency, streaming |
 | `docs/phase-1/roadmap.md` | Epic/Story breakdown Phase 1–6 |
@@ -258,9 +259,24 @@ See `docs/phase-1/error-handling.md` for full taxonomy.
 
 ---
 
+## Phase Status
+
+| Phase | Name | Status |
+|---|---|---|
+| Phase 1 | Architecture & Blueprinting | ✅ Done |
+| Phase 2 | Environment & Infrastructure | ✅ Done |
+| Phase 3 | Core Domain & Boilerplate | ✅ Done |
+| Phase 4 | Backend MVP | ✅ Done (PR #3 merged) |
+| Phase 5 | Frontend Web & Mobile | 🔲 In Progress |
+| Phase 6 | Advanced Features & DevOps | ⬜ Planned |
+
+Phase 5 plans: `docs/superpowers/plans/2026-06-10-phase5{a,b,c}-*.md`
+
+---
+
 ## When Working in This Codebase
 
-**Adding a new feature:**
+### Adding a new backend feature (Go microservice):
 1. Start in `domain/` — define the aggregate and its behavior
 2. Add repository interface (port) to `domain/`
 3. Write use case in `application/command/` or `application/query/`
@@ -272,9 +288,30 @@ See `docs/phase-1/error-handling.md` for full taxonomy.
 
 **Never skip the domain layer.** Business logic in handlers is an architecture violation.
 
-**Before every PR:**
+### Adding a new frontend feature (Next.js):
+1. Check if a shared component exists first (`components/ui/` or `components/shared/`)
+2. If new shared component needed → create in `components/shared/` with a `.test.tsx`
+3. Build feature component in `components/features/{domain}/`
+4. Add TanStack Query hook to `services/{domain}.ts`
+5. Wire into the page in `app/(layout-group)/route/page.tsx`
+6. All data states: loading → skeleton, error → ErrorState, empty → EmptyState
+7. `use client` only when you need interactivity
+
+See `docs/phase-1/frontend-rules.md` for full frontend rules.  
+See `apps/web/CLAUDE.md` for web-specific patterns.
+
+**Before every backend PR:**
 ```bash
 make lint      # golangci-lint 2.12.2
 make test      # go test ./...
 make proto     # buf generate (if .proto changed)
+```
+
+**Before every frontend PR:**
+```bash
+cd apps/web
+pnpm typecheck   # zero TypeScript errors
+pnpm lint        # zero ESLint errors
+pnpm test        # all Vitest tests green
+pnpm build       # production build succeeds
 ```
