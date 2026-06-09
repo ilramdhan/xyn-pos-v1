@@ -32,3 +32,23 @@ type OrderCancelledEvent struct {
 }
 
 func (OrderCancelledEvent) orderEvent() {}
+
+type OrderParkedEvent struct {
+	OrderID    uuid.UUID
+	TenantID   uuid.UUID
+	BranchID   uuid.UUID
+	CashierID  uuid.UUID
+	OccurredAt time.Time
+}
+
+func (OrderParkedEvent) orderEvent() {}
+
+type OrderResumedEvent struct {
+	OrderID    uuid.UUID
+	TenantID   uuid.UUID
+	BranchID   uuid.UUID
+	CashierID  uuid.UUID
+	OccurredAt time.Time
+}
+
+func (OrderResumedEvent) orderEvent() {}

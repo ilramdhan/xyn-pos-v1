@@ -14,6 +14,7 @@ const (
 	StatusPendingPayment OrderStatus = "pending_payment"
 	StatusPaid           OrderStatus = "paid"
 	StatusCancelled      OrderStatus = "cancelled"
+	StatusParked         OrderStatus = "parked"
 )
 
 type OrderType string
@@ -206,6 +207,41 @@ func (o *Order) Cancel(reason string) error {
 	o.events = append(o.events, OrderCancelledEvent{
 		OrderID:    o.ID,
 		TenantID:   o.TenantID,
+		OccurredAt: time.Now().UTC(),
+	})
+	return nil
+}
+
+// Park sets the order to parked status, suspending it for later resumption.
+// Only orders in DRAFT status can be parked.
+func (o *Order) Park() error {
+	if o.Status != StatusDraft {
+		return fmt.Errorf("Park: %w", ErrInvalidStatusTransition)
+	}
+	o.Status = StatusParked
+	o.UpdatedAt = time.Now().UTC()
+	o.events = append(o.events, OrderParkedEvent{
+		OrderID:    o.ID,
+		TenantID:   o.TenantID,
+		BranchID:   o.BranchID,
+		CashierID:  o.CashierID,
+		OccurredAt: time.Now().UTC(),
+	})
+	return nil
+}
+
+// Resume restores a parked order to DRAFT status so items can be modified.
+func (o *Order) Resume() error {
+	if o.Status != StatusParked {
+		return fmt.Errorf("Resume: %w", ErrOrderNotParked)
+	}
+	o.Status = StatusDraft
+	o.UpdatedAt = time.Now().UTC()
+	o.events = append(o.events, OrderResumedEvent{
+		OrderID:    o.ID,
+		TenantID:   o.TenantID,
+		BranchID:   o.BranchID,
+		CashierID:  o.CashierID,
 		OccurredAt: time.Now().UTC(),
 	})
 	return nil
