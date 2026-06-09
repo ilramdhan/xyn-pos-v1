@@ -23,6 +23,8 @@ const (
 	PaymentService_VoidPayment_FullMethodName       = "/payment.v1.PaymentService/VoidPayment"
 	PaymentService_GetPayment_FullMethodName        = "/payment.v1.PaymentService/GetPayment"
 	PaymentService_GetPaymentByOrder_FullMethodName = "/payment.v1.PaymentService/GetPaymentByOrder"
+	PaymentService_GetReceipt_FullMethodName        = "/payment.v1.PaymentService/GetReceipt"
+	PaymentService_GetReceiptByOrder_FullMethodName = "/payment.v1.PaymentService/GetReceiptByOrder"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
@@ -35,6 +37,8 @@ type PaymentServiceClient interface {
 	VoidPayment(ctx context.Context, in *VoidPaymentRequest, opts ...grpc.CallOption) (*VoidPaymentResponse, error)
 	GetPayment(ctx context.Context, in *GetPaymentRequest, opts ...grpc.CallOption) (*GetPaymentResponse, error)
 	GetPaymentByOrder(ctx context.Context, in *GetPaymentByOrderRequest, opts ...grpc.CallOption) (*GetPaymentByOrderResponse, error)
+	GetReceipt(ctx context.Context, in *GetReceiptRequest, opts ...grpc.CallOption) (*GetReceiptResponse, error)
+	GetReceiptByOrder(ctx context.Context, in *GetReceiptByOrderRequest, opts ...grpc.CallOption) (*GetReceiptByOrderResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -85,6 +89,26 @@ func (c *paymentServiceClient) GetPaymentByOrder(ctx context.Context, in *GetPay
 	return out, nil
 }
 
+func (c *paymentServiceClient) GetReceipt(ctx context.Context, in *GetReceiptRequest, opts ...grpc.CallOption) (*GetReceiptResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetReceiptResponse)
+	err := c.cc.Invoke(ctx, PaymentService_GetReceipt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *paymentServiceClient) GetReceiptByOrder(ctx context.Context, in *GetReceiptByOrderRequest, opts ...grpc.CallOption) (*GetReceiptByOrderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetReceiptByOrderResponse)
+	err := c.cc.Invoke(ctx, PaymentService_GetReceiptByOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations should embed UnimplementedPaymentServiceServer
 // for forward compatibility.
@@ -95,6 +119,8 @@ type PaymentServiceServer interface {
 	VoidPayment(context.Context, *VoidPaymentRequest) (*VoidPaymentResponse, error)
 	GetPayment(context.Context, *GetPaymentRequest) (*GetPaymentResponse, error)
 	GetPaymentByOrder(context.Context, *GetPaymentByOrderRequest) (*GetPaymentByOrderResponse, error)
+	GetReceipt(context.Context, *GetReceiptRequest) (*GetReceiptResponse, error)
+	GetReceiptByOrder(context.Context, *GetReceiptByOrderRequest) (*GetReceiptByOrderResponse, error)
 }
 
 // UnimplementedPaymentServiceServer should be embedded to have
@@ -115,6 +141,12 @@ func (UnimplementedPaymentServiceServer) GetPayment(context.Context, *GetPayment
 }
 func (UnimplementedPaymentServiceServer) GetPaymentByOrder(context.Context, *GetPaymentByOrderRequest) (*GetPaymentByOrderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPaymentByOrder not implemented")
+}
+func (UnimplementedPaymentServiceServer) GetReceipt(context.Context, *GetReceiptRequest) (*GetReceiptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReceipt not implemented")
+}
+func (UnimplementedPaymentServiceServer) GetReceiptByOrder(context.Context, *GetReceiptByOrderRequest) (*GetReceiptByOrderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReceiptByOrder not implemented")
 }
 func (UnimplementedPaymentServiceServer) testEmbeddedByValue() {}
 
@@ -208,6 +240,42 @@ func _PaymentService_GetPaymentByOrder_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_GetReceipt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReceiptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetReceipt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_GetReceipt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetReceipt(ctx, req.(*GetReceiptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PaymentService_GetReceiptByOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReceiptByOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetReceiptByOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PaymentService_GetReceiptByOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetReceiptByOrder(ctx, req.(*GetReceiptByOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -230,6 +298,14 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPaymentByOrder",
 			Handler:    _PaymentService_GetPaymentByOrder_Handler,
+		},
+		{
+			MethodName: "GetReceipt",
+			Handler:    _PaymentService_GetReceipt_Handler,
+		},
+		{
+			MethodName: "GetReceiptByOrder",
+			Handler:    _PaymentService_GetReceiptByOrder_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

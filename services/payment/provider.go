@@ -79,9 +79,8 @@ func NewServer(cfg *Config) (*App, error) {
 	// Application: queries
 	getH := query.NewGetPaymentHandler(paymentRepo)
 	getByOrderH := query.NewGetPaymentByOrderHandler(paymentRepo)
-	// Receipt query handlers — wired to gRPC in a later task when proto stubs are generated.
-	_ = query.NewGetReceiptHandler(receiptRepo)
-	_ = query.NewGetReceiptByOrderHandler(receiptRepo)
+	getReceiptH := query.NewGetReceiptHandler(receiptRepo)
+	getReceiptByOrderH := query.NewGetReceiptByOrderHandler(receiptRepo)
 
 	// PASETO verifier for gRPC auth middleware
 	var verifyFn sharedauth.VerifyFunc
@@ -96,7 +95,7 @@ func NewServer(cfg *Config) (*App, error) {
 	}
 
 	// Interfaces: gRPC
-	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, getH, getByOrderH)
+	grpcHdlr := grpchandler.NewPaymentHandler(initiateH, voidH, getH, getByOrderH, getReceiptH, getReceiptByOrderH)
 	grpcSrv := grpchandler.NewServer(cfg.GRPCPort, grpcHdlr, verifyFn)
 
 	// Interfaces: HTTP (Midtrans webhook)
